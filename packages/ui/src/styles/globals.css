@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #faf9f8;
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-accent: #e5b3c5;
+  --color-accent-hover: #d39eb1;
+  --color-border: #eaeaea;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-muted: #f3f4f6;
+  --color-ring: #e5b3c5;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+:root {
+  --color-background: #faf9f8;
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-accent: #e5b3c5;
+  --color-accent-hover: #d39eb1;
+  --color-border: #eaeaea;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-muted: #f3f4f6;
+  --color-ring: #e5b3c5;
+}
+
+.dark {
+  --color-background: #111111;
+  --color-surface: #1a1a1a;
+  --color-card: #222222;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-accent: #e5b3c5;
+  --color-accent-hover: #d39eb1;
+  --color-border: #333333;
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
+  --color-error: #ef4444;
+  --color-muted: #2a2a2a;
+  --color-ring: #e5b3c5;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 25%,
+    var(--color-border) 50%,
+    var(--color-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-enter {
+  animation: slide-in 300ms ease-out;
+}

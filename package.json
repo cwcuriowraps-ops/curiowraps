@@ -1,0 +1,41 @@
+{
+  "name": "ecommerce-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "db:generate": "turbo run prisma:generate",
+    "db:seed": "turbo run seed",
+    "db:studio": "turbo run prisma:studio",
+    "db:validate": "turbo run prisma:validate",
+    "db:migrate": "turbo run prisma:migrate:dev",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^24.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^17.7.0",
+    "prettier": "^3.5.3",
+    "puppeteer": "^25.3.0",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.4",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "packageManager": "npm@10.9.2"
+}

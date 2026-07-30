@@ -1,0 +1,43 @@
+/* WatercolorLogo.module.css - Pure Procedural SVG & CSS Design System */
+
+.container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  width: 100%;
+  max-width: 850px;
+  aspect-ratio: 720 / 380;
+  margin: 0 auto;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Subtle Floating / Breathing animation for luxury presentation */
+@keyframes watercolorBreathe {
+  0%, 100% {
+    transform: translate(0, 150px) scale(1);
+    opacity: 0.94;
+  }
+  50% {
+    transform: translate(0, 150px) scale(1.012);
+    opacity: 1;
+  }
+}
+
+.watercolorGroup {
+  animation: watercolorBreathe 8s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watercolorGroup {
+    animation: none !important;
+  }
+}

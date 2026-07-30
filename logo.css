@@ -1,0 +1,81 @@
+/* ==========================================
+   CURIO WRAP LOGO COMPONENT
+   100% Theme-Aware Dark / Light Mode Supported
+   ========================================== */
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #111111;
+  --logo-max-width: 850px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0f172a;
+    --text-color: #ffffff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-color);
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.curio-logo-stage {
+  position: relative;
+  width: 100%;
+  max-width: var(--logo-max-width);
+  aspect-ratio: 720 / 460;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  user-select: none;
+}
+
+.curio-logo-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.lettering-group {
+  fill: var(--text-color, #111111);
+  transition: fill 0.3s ease;
+}
+
+@keyframes watercolorBreathe {
+  0%, 100% {
+    transform: translate(0, 160px) scale(1);
+    opacity: 0.94;
+  }
+  50% {
+    transform: translate(0, 160px) scale(1.012);
+    opacity: 1;
+  }
+}
+
+.watercolor-group {
+  animation: watercolorBreathe 8s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watercolor-group {
+    animation: none !important;
+  }
+}

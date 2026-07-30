@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --color-text-primary: #111111;
+  --color-text-secondary: #555555;
+  --color-accent: #f7c8d8;
+  --color-accent-hover: #e8b0c2;
+  --color-border: #ececec;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-muted: #f9f9f9;
+  --color-ring: #f7c8d8;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+:root {
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --color-text-primary: #111111;
+  --color-text-secondary: #555555;
+  --color-accent: #f7c8d8;
+  --color-accent-hover: #e8b0c2;
+  --color-border: #ececec;
+  --color-muted: #f9f9f9;
+  --color-ring: #f7c8d8;
+}
+
+.dark {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-card: #111111;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-accent: #f7c8d8;
+  --color-accent-hover: #e8b0c2;
+  --color-border: #222222;
+  --color-muted: #111111;
+  --color-ring: #f7c8d8;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-inter), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .font-serif {
+  font-family: var(--font-cormorant), serif;
+}
+
+/* Subtle image hover zoom for product cards */
+.hover-zoom-img {
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.group:hover .hover-zoom-img {
+  transform: scale(1.03);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-badge-pop {
+  animation: badge-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fade-in-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-slide-down {
+  animation: fade-in-slide-down 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: rgba(247, 200, 216, 0.4);
+    border-color: rgba(247, 200, 216, 0.8);
+  }
+  100% {
+    background-color: transparent;
+    border-color: transparent;
+  }
+}
+
+.animate-highlight-fade {
+  animation: highlight-fade 2s ease-out forwards;
+}
+

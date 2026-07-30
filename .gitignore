@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Turbo
+.turbo/
+
+# Prisma
+apps/api/prisma/migrations/**/migration_lock.toml
+packages/database/prisma/migrations/**/migration_lock.toml
+
+# Docker
+docker-data/
