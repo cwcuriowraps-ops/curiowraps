@@ -6,7 +6,7 @@ export default defineConfig({
   target: "node20",
   outDir: "dist",
   clean: true,
+  dts: true,
   sourcemap: true,
   splitting: false,
-  external: ["@prisma/client"],
 });

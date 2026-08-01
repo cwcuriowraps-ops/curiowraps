@@ -5,7 +5,7 @@ export {
   animation,
   spacing,
   type ThemeMode,
-} from "./design-tokens";
+} from "./design-tokens.js";
 
 export const appConfig = {
   name: "Curio Wrap",
