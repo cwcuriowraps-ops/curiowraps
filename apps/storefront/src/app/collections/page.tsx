@@ -1,17 +1,13 @@
 "use client";
 
 import { Button } from "@dashboard/ui";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-import { apiClient } from "@/lib/api-client";
+import { useCollections } from "@/api/products";
 
 export default function CollectionsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["collections"],
-    queryFn: () => apiClient<any>("/categories?featured=true")
-  });
+  const { data, isLoading } = useCollections();
 
   return (
     <div className="bg-background min-h-screen">

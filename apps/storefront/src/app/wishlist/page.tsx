@@ -74,7 +74,7 @@ export default function WishlistPage() {
               >
                 <div className="w-28 h-28 shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
                   {item.product.images?.[0]?.url ? (
-                    <img src={encodeURI(item.product.images[0].url)} alt={item.product.name} className="w-full h-full object-cover" />
+                    <img src={encodeURI(item.product.images[0].url)} alt={item.product.name} className="w-full h-full object-contain p-1" />
                   ) : (
                     <span className="font-serif text-xs text-text-secondary text-center p-1">{item.product.name}</span>
                   )}

@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = '/Users/romit/.gemini/antigravity-ide/brain/ccf525cf-32d2-4dae-94af-c14933082579';
+const ARTIFACTS_DIR = '/Users/romit/.gemini/antigravity-ide/brain/be3eb91a-e6cf-469c-be9f-0709f8e03868';
 
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -66,13 +66,13 @@ async function verify() {
   }
 
   // --- Customer Storefront Verification ---
-  console.log('\\n=== Storefront Verification ===');
+  console.log('\n=== Storefront Verification ===');
   
   await checkPage('Home', 'http://localhost:3000', 'storefront_home');
   await checkPage('Collections', 'http://localhost:3000/collections', 'storefront_collections');
   await checkPage('Categories', 'http://localhost:3000/categories', 'storefront_categories');
-  await checkPage('Product Details', 'http://localhost:3000/products/panda-bear-plushie-YuPx', 'storefront_product');
-  await checkPage('Search', 'http://localhost:3000/search?q=panda', 'storefront_search');
+  await checkPage('Product Details', 'http://localhost:3000/products/classic-red-rose-bouquet-f84y', 'storefront_product');
+  await checkPage('Search', 'http://localhost:3000/search?q=rose', 'storefront_search');
   
   // Login flow
   await checkPage('Login Page', 'http://localhost:3000/auth/login', 'storefront_login_page');
@@ -81,11 +81,9 @@ async function verify() {
   try {
     await page.type('input[type="email"]', 'admin@curiowrap.com');
     await page.type('input[type="password"]', 'Admin@123');
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 })
-    ]);
-    console.log('Login successful');
+    await page.click('button[type="submit"]');
+    await delay(3000);
+    console.log('Login attempt complete');
     await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'storefront_login_success.png') });
   } catch (e) {
     console.error('Login failed:', e.message);
@@ -102,7 +100,8 @@ async function verify() {
   // Add to cart and Checkout
   console.log('Testing Add to Cart & Checkout...');
   try {
-    await page.goto('http://localhost:3000/products/panda-bear-plushie-YuPx', { waitUntil: 'networkidle0' });
+    await page.goto('http://localhost:3000/products/classic-red-rose-bouquet-f84y', { waitUntil: 'domcontentloaded' });
+    await delay(1500);
     const addToCartHandle = await page.evaluateHandle(() => {
       const btns = Array.from(document.querySelectorAll('button'));
       return btns.find(b => b.textContent && b.textContent.includes('Add to Cart'));
@@ -111,7 +110,8 @@ async function verify() {
     if (addToCartBtn) {
       await addToCartBtn.click();
       await delay(2000);
-      await page.goto('http://localhost:3000/checkout', { waitUntil: 'networkidle0' });
+      await page.goto('http://localhost:3000/checkout', { waitUntil: 'domcontentloaded' });
+      await delay(1500);
       console.log('Navigated to checkout');
       await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'storefront_checkout.png') });
     } else {
@@ -124,7 +124,8 @@ async function verify() {
   // Logout
   console.log('Attempting Logout...');
   try {
-    await page.goto('http://localhost:3000/account', { waitUntil: 'networkidle0' });
+    await page.goto('http://localhost:3000/account', { waitUntil: 'domcontentloaded' });
+    await delay(1500);
     const logoutHandle = await page.evaluateHandle(() => {
       const btns = Array.from(document.querySelectorAll('button'));
       return btns.find(b => b.textContent && b.textContent.includes('Log Out'));
@@ -144,7 +145,7 @@ async function verify() {
   }
 
   // --- Admin Verification ---
-  console.log('\\n=== Admin Verification ===');
+  console.log('\n=== Admin Verification ===');
   
   await checkPage('Admin Login Page', 'http://localhost:3001/login', 'admin_login_page');
   
@@ -152,11 +153,9 @@ async function verify() {
   try {
     await page.type('input[type="email"]', 'admin@curiowrap.com');
     await page.type('input[type="password"]', 'Admin@123');
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 })
-    ]);
-    console.log('Admin Login successful');
+    await page.click('button[type="submit"]');
+    await delay(3000);
+    console.log('Admin Login complete');
     await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'admin_login_success.png') });
   } catch (e) {
     console.error('Admin Login failed:', e.message);

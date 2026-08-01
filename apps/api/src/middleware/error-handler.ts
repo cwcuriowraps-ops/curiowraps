@@ -53,6 +53,27 @@ export function createErrorHandler(logger: Logger): ErrorRequestHandler {
       return;
     }
 
+    if ((err as any).code === "P2002") {
+      logger.warn(
+        {
+          event: "request.conflict",
+          requestId,
+          err,
+        },
+        "prisma unique constraint conflict",
+      );
+
+      const target = (err as any).meta?.target;
+      const fieldName = Array.isArray(target) ? target.join(", ") : target || "slug";
+      const error: ApiError = {
+        code: "CONFLICT",
+        message: `A record with this ${fieldName} already exists.`,
+      };
+
+      res.status(409).json({ success: false, error });
+      return;
+    }
+
     if (err.name === "TokenExpiredError" || err.name === "JsonWebTokenError") {
       logger.warn(
         {

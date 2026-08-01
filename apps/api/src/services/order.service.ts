@@ -114,7 +114,7 @@ export class OrderService {
       }
 
       return newOrder;
-    });
+    }, { maxWait: 10000, timeout: 20000 });
 
     // 5. Clear Cart (Non-transactional, safe to run after success)
     await this.cartService.clearCart(undefined, actorUserId);

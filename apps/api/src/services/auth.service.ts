@@ -410,7 +410,7 @@ export class AuthService {
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-    });
+    }, { maxWait: 10000, timeout: 20000 });
   }
 
   verifyAccessToken(accessToken: string) {

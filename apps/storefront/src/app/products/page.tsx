@@ -149,7 +149,7 @@ function ProductsContent() {
                       fill
                       priority={index < 3}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="h-full w-full object-contain p-2 transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted text-text-secondary font-serif">

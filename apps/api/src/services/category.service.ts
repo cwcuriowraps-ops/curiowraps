@@ -2,10 +2,10 @@ import type { PrismaClient } from "@dashboard/database";
 
 import { AppError } from "../middleware/error-handler";
 import { CategoryRepository } from "../repositories/category.repository";
+import { generateUniqueSlug } from "../utils/slug.utils";
 
 import { AuditService } from "./audit.service";
 import { RedisService } from "./redis.service";
-
 
 export interface CreateCategoryInput {
   slug: string;
@@ -68,47 +68,42 @@ export class CategoryService {
       imageUrl: data.imageUrl && data.imageUrl.trim() !== "" ? data.imageUrl : null,
     };
 
-    // Check if slug exists
-    console.log("[Category Create][Service] Before slug lookup await", { slug: sanitizedData.slug });
-    const existing = await this.categoryRepository.findBySlug(sanitizedData.slug);
-    console.log("[Category Create][Service] After slug lookup await", { exists: Boolean(existing) });
-    if (existing) {
-      throw new AppError(400, "BAD_REQUEST", "Category slug already exists");
-    }
+    // Auto-generate unique slug (e.g., bouquet -> bouquet-2 -> bouquet-3)
+    const baseSlugText = sanitizedData.slug && sanitizedData.slug.trim() !== "" ? sanitizedData.slug : sanitizedData.name;
+    const uniqueSlug = await generateUniqueSlug(baseSlugText, (candidate) =>
+      this.categoryRepository.isSlugTaken(candidate)
+    );
+    sanitizedData.slug = uniqueSlug;
 
     if (sanitizedData.parentId) {
-      console.log("[Category Create][Service] Before parent lookup await", { parentId: sanitizedData.parentId });
       const parent = await this.categoryRepository.findById(sanitizedData.parentId);
-      console.log("[Category Create][Service] After parent lookup await", { exists: Boolean(parent) });
       if (!parent) {
         throw new AppError(400, "BAD_REQUEST", "Parent category not found");
       }
     }
 
-    console.log("[Category Create][Service] Before category create await", sanitizedData);
-    const category = await this.categoryRepository.create(sanitizedData as any);
-    console.log("[Category Create][Service] After category create await", { categoryId: category.id });
+    try {
+      const category = await this.categoryRepository.create(sanitizedData as any);
 
-    console.log("[Category Create][Service] Before audit-log await", { categoryId: category.id });
-    await this.auditService.logAction({
-      actorUserId,
-      action: "CREATE",
-      entityType: "Category",
-      entityId: category.id,
-      after: category as any,
-      ...context,
-    });
-    console.log("[Category Create][Service] After audit-log await", { categoryId: category.id });
+      await this.auditService.logAction({
+        actorUserId,
+        action: "CREATE",
+        entityType: "Category",
+        entityId: category.id,
+        after: category as any,
+        ...context,
+      });
 
-    console.log("[Category Create][Service] Before cache invalidation await", { pattern: "category:*" });
-    await this.redisService.invalidatePattern(`category:*`);
-    console.log("[Category Create][Service] After cache invalidation await", { pattern: "category:*" });
-    console.log("[Category Create][Service] Before cache invalidation await", { pattern: "categories:*" });
-    await this.redisService.invalidatePattern(`categories:*`);
-    console.log("[Category Create][Service] After cache invalidation await", { pattern: "categories:*" });
+      await this.redisService.invalidatePattern(`category:*`);
+      await this.redisService.invalidatePattern(`categories:*`);
 
-    console.log("[Category Create][Service] Success", { categoryId: category.id });
-    return category;
+      return category;
+    } catch (error: any) {
+      if (error?.code === "P2002") {
+        throw new AppError(409, "CONFLICT", "A category with this slug already exists.");
+      }
+      throw error;
+    }
   }
 
   async updateCategory(id: string, data: UpdateCategoryInput, actorUserId: string, context: any) {
@@ -121,11 +116,12 @@ export class CategoryService {
       ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl && data.imageUrl.trim() !== "" ? data.imageUrl : null } : {}),
     };
 
-    if (sanitizedData.slug && sanitizedData.slug !== category.slug) {
-      const existing = await this.categoryRepository.findBySlug(sanitizedData.slug);
-      if (existing) {
-        throw new AppError(400, "BAD_REQUEST", "Category slug already exists");
-      }
+    if (sanitizedData.slug !== undefined || sanitizedData.name !== undefined) {
+      const baseText = sanitizedData.slug && sanitizedData.slug.trim() !== "" ? sanitizedData.slug : (sanitizedData.name || category.name);
+      const uniqueSlug = await generateUniqueSlug(baseText, (candidate) =>
+        this.categoryRepository.isSlugTaken(candidate, id)
+      );
+      sanitizedData.slug = uniqueSlug;
     }
 
     if (sanitizedData.parentId) {
@@ -148,22 +144,29 @@ export class CategoryService {
       }
     }
 
-    const updatedCategory = await this.categoryRepository.update(id, sanitizedData as any);
+    try {
+      const updatedCategory = await this.categoryRepository.update(id, sanitizedData as any);
 
-    await this.auditService.logAction({
-      actorUserId,
-      action: "UPDATE",
-      entityType: "Category",
-      entityId: id,
-      before: category as any,
-      after: updatedCategory as any,
-      ...context,
-    });
+      await this.auditService.logAction({
+        actorUserId,
+        action: "UPDATE",
+        entityType: "Category",
+        entityId: id,
+        before: category as any,
+        after: updatedCategory as any,
+        ...context,
+      });
 
-    await this.redisService.invalidatePattern(`category:*`);
-    await this.redisService.invalidatePattern(`categories:*`);
+      await this.redisService.invalidatePattern(`category:*`);
+      await this.redisService.invalidatePattern(`categories:*`);
 
-    return updatedCategory;
+      return updatedCategory;
+    } catch (error: any) {
+      if (error?.code === "P2002") {
+        throw new AppError(409, "CONFLICT", "A category with this slug already exists.");
+      }
+      throw error;
+    }
   }
 
   async deleteCategory(id: string, actorUserId: string, context: any) {

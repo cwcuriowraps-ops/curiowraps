@@ -221,8 +221,9 @@ export function CropModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Category Image Crop Editor"
+      size="lg"
     >
-      <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center p-2">
+      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start justify-center p-1 sm:p-2 w-full max-w-full overflow-hidden">
         {/* Left Column: Interactive Cropper */}
         <div className="flex flex-col items-center gap-4 w-full max-w-[340px]">
           <div className="flex items-center justify-between w-full">

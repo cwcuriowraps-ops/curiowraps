@@ -257,7 +257,7 @@ export function MultiUploadModal({ open, onOpenChange, onUploadSuccess }: MultiU
   };
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Multiple Media Upload">
+    <Modal open={open} onOpenChange={onOpenChange} title="Multiple Media Upload" size="xl">
       <div className="flex flex-col gap-4">
         {/* Drag & Drop Area */}
         <div

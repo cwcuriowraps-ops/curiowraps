@@ -195,6 +195,8 @@ export class ProductService {
       variants: { create: variantsCreate },
     };
 
+    const defaultLocation = await this.prisma.inventoryLocation.findFirst({ where: { isActive: true } });
+
     // Execute atomic creation transaction
     const product = await this.prisma.$transaction(async (tx: any) => {
       const createdProduct = await tx.product.create({
@@ -207,23 +209,20 @@ export class ProductService {
         },
       });
 
-      const defaultLocation = await tx.inventoryLocation.findFirst({ where: { isActive: true } });
       if (defaultLocation && createdProduct.variants && createdProduct.variants.length > 0) {
-        for (const variant of createdProduct.variants) {
-          await tx.inventory.create({
-            data: {
-              variantId: variant.id,
-              locationId: defaultLocation.id,
-              quantityOnHand: 100,
-              reservedQuantity: 0,
-              reorderPoint: 5,
-            },
-          });
-        }
+        await tx.inventory.createMany({
+          data: createdProduct.variants.map((variant: any) => ({
+            variantId: variant.id,
+            locationId: defaultLocation.id,
+            quantityOnHand: 100,
+            reservedQuantity: 0,
+            reorderPoint: 5,
+          })),
+        });
       }
 
       return createdProduct;
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     console.info("[CreateProduct][Service][Step:Success]", JSON.stringify({ id: product.id, slug: product.slug }));
 

@@ -34,15 +34,35 @@ export class CategoryRepository {
     });
   }
 
+  async isSlugTaken(slug: string, excludeId?: string): Promise<boolean> {
+    const existing = await this.prisma.category.findFirst({
+      where: {
+        slug: {
+          equals: slug,
+          mode: "insensitive",
+        },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+    return Boolean(existing);
+  }
+
   async findBySlug(slug: string) {
-    console.log("[Category Create][Prisma] Before slug query", { slug });
+    console.log("[Category Repository] Before slug query", { slug });
     try {
-      const category = await this.prisma.category.findFirst({ where: { slug, deletedAt: null } });
-      console.log("[Category Create][Prisma] After slug query", { exists: Boolean(category) });
+      const category = await this.prisma.category.findFirst({
+        where: {
+          slug: {
+            equals: slug,
+            mode: "insensitive",
+          },
+          deletedAt: null,
+        },
+      });
+      console.log("[Category Repository] After slug query", { exists: Boolean(category) });
       return category;
     } catch (error) {
-      console.error("[Category Create][Prisma] Slug query exception", error);
-      console.error("[Category Create][Prisma] Slug query stack", error instanceof Error ? error.stack : error);
+      console.error("[Category Repository] Slug query exception", error);
       throw error;
     }
   }

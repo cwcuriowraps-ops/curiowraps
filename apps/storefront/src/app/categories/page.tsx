@@ -1,15 +1,11 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-import { apiClient } from "@/lib/api-client";
+import { useCategories } from "@/api/products";
 
 export default function CategoriesPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["all-categories"],
-    queryFn: () => apiClient<any>("/categories")
-  });
+  const { data, isLoading } = useCategories();
 
   return (
     <div className="bg-background min-h-[70vh]">

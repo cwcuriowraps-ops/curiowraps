@@ -108,7 +108,7 @@ export class UserService {
         metadata: { field: "password" },
         ...context,
       });
-    });
+    }, { maxWait: 10000, timeout: 20000 });
   }
 
   async changeEmail(userId: string, input: ChangeEmailInput, context: any) {

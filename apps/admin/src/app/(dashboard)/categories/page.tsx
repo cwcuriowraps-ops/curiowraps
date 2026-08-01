@@ -119,13 +119,9 @@ export default function CategoriesPage() {
       console.log("8. category saved");
     } catch (error: any) {
       console.error("[Category Form] Save failed", error);
-      console.error("[Category Form] Save failed details", {
-        message: error?.message,
-        status: error?.status,
-        code: error?.code,
-        response: error?.data,
-        stack: error?.stack,
-      });
+      if (error?.status === 409 || error?.code === "CONFLICT" || error?.message?.includes("slug")) {
+        form.setError("slug", { type: "manual", message: "A category with this slug already exists." });
+      }
       addToast({
         title: "Save Failed",
         description: error?.message || "Failed to save category",

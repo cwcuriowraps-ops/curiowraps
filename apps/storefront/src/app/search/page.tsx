@@ -56,7 +56,7 @@ function SearchContent() {
                     <img
                       src={encodeURI(p.images[0].url)}
                       alt={p.name}
-                      className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                      className="h-full w-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                   ) : (
                     <span className="font-serif text-sm text-text-secondary">{p.name}</span>

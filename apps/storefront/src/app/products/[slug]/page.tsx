@@ -33,6 +33,7 @@ export default function ProductDetailsPage() {
   const [imagesList, setImagesList] = useState<string[]>([]);
 
   const [customization, setCustomization] = useState("");
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   const addToCart = useAddToCart();
   const addToWishlist = useAddToWishlist();
@@ -96,8 +97,6 @@ export default function ProductDetailsPage() {
 
   const variants = product.variants || [];
   const selectedVariant = variants[selectedVariantIndex] || variants[0];
-
-  const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   const handleAddToCart = () => {
     const activeVariant = selectedVariant || variants[0];
@@ -277,7 +276,7 @@ export default function ProductDetailsPage() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Image Gallery */}
           <div className="flex flex-col gap-4">
-            <div 
+            <div
               onClick={() => images[selectedImage] && setIsLightboxOpen(true)}
               className="aspect-[4/5] max-h-[640px] w-full overflow-hidden rounded-2xl bg-surface/60 border border-border/60 relative group cursor-zoom-in flex items-center justify-center p-2 sm:p-4 shadow-xs hover:border-accent/40 transition-all"
             >
@@ -377,8 +376,8 @@ export default function ProductDetailsPage() {
                       key={variant.id}
                       onClick={() => setSelectedVariantIndex(i)}
                       className={`px-5 py-2.5 rounded-md border text-sm font-medium transition-all ${selectedVariantIndex === i
-                          ? "border-accent bg-accent/10 text-accent ring-1 ring-accent"
-                          : "border-border text-text-secondary hover:border-accent/50 hover:text-text-primary"
+                        ? "border-accent bg-accent/10 text-accent ring-1 ring-accent"
+                        : "border-border text-text-secondary hover:border-accent/50 hover:text-text-primary"
                         }`}
                     >
                       {variant.title || variant.name}
@@ -677,8 +676,8 @@ export default function ProductDetailsPage() {
                     >
                       <Star
                         className={`h-8 w-8 ${star <= (hoverRating || ratingInput)
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-border"
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-border"
                           }`}
                       />
                     </button>
@@ -781,7 +780,7 @@ export default function ProductDetailsPage() {
 
       {/* Fullscreen Lightbox Modal */}
       {isLightboxOpen && images[selectedImage] && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8"
           onClick={() => setIsLightboxOpen(false)}
         >
@@ -818,7 +817,7 @@ export default function ProductDetailsPage() {
             </>
           )}
 
-          <div 
+          <div
             className="relative w-full h-full max-w-5xl max-h-[85vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
@@ -836,3 +835,4 @@ export default function ProductDetailsPage() {
     </div>
   );
 }
+

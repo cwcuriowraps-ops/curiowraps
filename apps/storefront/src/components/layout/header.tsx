@@ -13,6 +13,7 @@ import { useCartUIStore } from "@/store/useCartUIStore";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Shop" },
+  { href: "/categories", label: "Categories" },
   { href: "/collections", label: "Collections" },
   { href: "/about", label: "About" },
 ];
