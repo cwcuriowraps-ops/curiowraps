@@ -187,9 +187,23 @@ export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
   // Rate limiting
   app.use(createRateLimiter(deps.redisService));
   
+  // DEBUG ONLY
+  console.log("========== CORS DEBUG ==========");
+  console.log("ADMIN_URL:", process.env.ADMIN_URL);
+  console.log("STOREFRONT_URL:", process.env.STOREFRONT_URL);
+  console.log("CORS_ORIGINS:", process.env.CORS_ORIGINS);
+  console.log("Parsed corsOrigins:", deps.config.corsOrigins);
+  console.log("================================");
+
+  // DEBUG ONLY
   app.use(
     cors({
-      origin: deps.config.corsOrigins,
+      origin(origin, callback) {
+        console.log("Incoming Origin:", origin);
+        console.log("Allowed Origins:", deps.config.corsOrigins);
+
+        callback(null, true);
+      },
       credentials: true,
     }),
   );
