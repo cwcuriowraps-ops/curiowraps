@@ -27,7 +27,23 @@ export const useAddToWishlist = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ["wishlist", token] });
+      const previousWishlist = queryClient.getQueryData<{ items: any[] }>(["wishlist", token]);
+      if (previousWishlist?.items) {
+        queryClient.setQueryData(["wishlist", token], {
+          ...previousWishlist,
+          items: [...previousWishlist.items, { id: `temp-${Date.now()}`, productId: data.productId }],
+        });
+      }
+      return { previousWishlist };
+    },
+    onError: (_err, _data, context: any) => {
+      if (context?.previousWishlist) {
+        queryClient.setQueryData(["wishlist", token], context.previousWishlist);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });
@@ -43,8 +59,25 @@ export const useRemoveFromWishlist = () => {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       }),
-    onSuccess: () => {
+    onMutate: async (productId) => {
+      await queryClient.cancelQueries({ queryKey: ["wishlist", token] });
+      const previousWishlist = queryClient.getQueryData<{ items: any[] }>(["wishlist", token]);
+      if (previousWishlist?.items) {
+        queryClient.setQueryData(["wishlist", token], {
+          ...previousWishlist,
+          items: previousWishlist.items.filter((item: any) => item.productId !== productId && item.id !== productId),
+        });
+      }
+      return { previousWishlist };
+    },
+    onError: (_err, _productId, context: any) => {
+      if (context?.previousWishlist) {
+        queryClient.setQueryData(["wishlist", token], context.previousWishlist);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });
 };
+

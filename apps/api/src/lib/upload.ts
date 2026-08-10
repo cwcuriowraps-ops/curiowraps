@@ -66,12 +66,19 @@ class ResilientStorage implements multer.StorageEngine {
     if (this.cloudinaryStorage) {
       this.cloudinaryStorage._handleFile(req, file, (err, info) => {
         if (err) {
-          console.warn("[Storage] Cloudinary upload returned error, falling back to local disk:", err.message || err);
+          console.warn("[Storage] Cloudinary upload returned error:", err.message || err);
+          if (process.env.NODE_ENV === "production") {
+            return cb(new Error(`Cloudinary media upload failed: ${err.message || err}`));
+          }
+          console.warn("[Storage] Falling back to local disk (development mode only)");
           return this.diskStorage._handleFile(req, file, cb);
         }
         cb(null, info);
       });
     } else {
+      if (process.env.NODE_ENV === "production") {
+        return cb(new Error("Cloudinary storage is not configured in production environment"));
+      }
       this.diskStorage._handleFile(req, file, cb);
     }
   }

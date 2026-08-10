@@ -28,8 +28,14 @@ export class PaymentRepository {
     });
   }
 
-  async updateStatus(id: string, status: PaymentStatus, additionalData?: Partial<Prisma.PaymentUpdateInput>): Promise<Payment> {
-    return this.prisma.payment.update({
+  async updateStatus(
+    id: string,
+    status: PaymentStatus,
+    additionalData?: Partial<Prisma.PaymentUpdateInput>,
+    tx?: any
+  ): Promise<Payment> {
+    const client = tx ?? this.prisma;
+    return client.payment.update({
       where: { id },
       data: {
         status,
@@ -38,7 +44,13 @@ export class PaymentRepository {
     });
   }
 
-  async updateOrderPaymentStatus(orderId: string, paymentStatus: PaymentStatus, orderStatus?: OrderStatus): Promise<void> {
+  async updateOrderPaymentStatus(
+    orderId: string,
+    paymentStatus: PaymentStatus,
+    orderStatus?: OrderStatus,
+    tx?: any
+  ): Promise<void> {
+    const client = tx ?? this.prisma;
     const dataToUpdate: Prisma.OrderUpdateInput = {
       paymentStatus,
     };
@@ -46,7 +58,7 @@ export class PaymentRepository {
       dataToUpdate.status = orderStatus;
     }
 
-    await this.prisma.order.update({
+    await client.order.update({
       where: { id: orderId },
       data: dataToUpdate,
     });

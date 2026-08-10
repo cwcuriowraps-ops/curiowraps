@@ -142,17 +142,29 @@ export class PaymentService {
       throw new AppError(400, "BAD_REQUEST", "Invalid payment signature");
     }
 
-    // Payment is valid
-    const updatedPayment = await this.paymentRepo.updateStatus(payment.id, PaymentStatus.PAID, {
-      providerPaymentId: razorpayPaymentId,
-      providerSignature: razorpaySignature,
-      paidAt: new Date(),
-    });
+    // Payment signature is valid. Perform payment status update, order status update, and inventory commit in a single atomic transaction.
+    const updatedPayment = await this.prisma.$transaction(async (tx) => {
+      // Atomic status update: returns count=0 if already marked PAID concurrently
+      const updateResult = await tx.payment.updateMany({
+        where: {
+          id: payment.id,
+          status: { not: PaymentStatus.PAID },
+        },
+        data: {
+          status: PaymentStatus.PAID,
+          providerPaymentId: razorpayPaymentId,
+          providerSignature: razorpaySignature,
+          paidAt: new Date(),
+        },
+      });
 
-    await this.paymentRepo.updateOrderPaymentStatus(order.id, PaymentStatus.PAID, OrderStatus.CONFIRMED);
+      if (updateResult.count === 0) {
+        // Idempotent: payment was already updated to PAID concurrently
+        return (await tx.payment.findUnique({ where: { id: payment.id } })) || payment;
+      }
 
-    // Commit inventory
-    await this.prisma.$transaction(async (tx) => {
+      await this.paymentRepo.updateOrderPaymentStatus(order.id, PaymentStatus.PAID, OrderStatus.CONFIRMED, tx);
+
       const locationId = await this.inventoryService.getDefaultLocationId(tx);
       const orderWithItems = await tx.order.findUnique({ where: { id: order.id }, include: { items: true } });
       if (orderWithItems) {
@@ -162,6 +174,8 @@ export class PaymentService {
           }
         }
       }
+
+      return (await tx.payment.findUnique({ where: { id: payment.id } })) || payment;
     });
 
     await this.auditService.logAction({
@@ -214,18 +228,17 @@ export class PaymentService {
       }
     }
 
-    const payment = await this.paymentRepo.create({
-      orderId: order.id,
-      provider: PaymentMethod.COD,
-      amount: order.grandTotal,
-      currency: order.currency,
-      status: PaymentStatus.PENDING,
-    });
+    const payment = await this.prisma.$transaction(async (tx) => {
+      const p = await this.paymentRepo.create({
+        orderId: order.id,
+        provider: PaymentMethod.COD,
+        amount: order.grandTotal,
+        currency: order.currency,
+        status: PaymentStatus.PENDING,
+      });
 
-    await this.paymentRepo.updateOrderPaymentStatus(order.id, PaymentStatus.PENDING, OrderStatus.CONFIRMED);
+      await this.paymentRepo.updateOrderPaymentStatus(order.id, PaymentStatus.PENDING, OrderStatus.CONFIRMED, tx);
 
-    // Commit inventory for COD
-    await this.prisma.$transaction(async (tx) => {
       const locationId = await this.inventoryService.getDefaultLocationId(tx);
       const orderWithItems = await tx.order.findUnique({ where: { id: order.id }, include: { items: true } });
       if (orderWithItems) {
@@ -235,6 +248,8 @@ export class PaymentService {
           }
         }
       }
+
+      return p;
     });
 
     await this.auditService.logAction({
@@ -292,62 +307,81 @@ export class PaymentService {
         break;
 
       case "payment.captured":
-        if (payment.status !== PaymentStatus.PAID) {
-          await this.paymentRepo.updateStatus(payment.id, PaymentStatus.PAID, {
-            providerPaymentId: rzpPaymentId,
-            paidAt: new Date(),
-          });
-          await this.paymentRepo.updateOrderPaymentStatus(payment.orderId, PaymentStatus.PAID, OrderStatus.CONFIRMED);
-          
-          await this.prisma.$transaction(async (tx) => {
-            const locationId = await this.inventoryService.getDefaultLocationId(tx);
-            const orderWithItems = await tx.order.findUnique({ where: { id: payment.orderId }, include: { items: true } });
-            if (orderWithItems) {
-              for (const item of orderWithItems.items) {
-                if (item.variantId) {
-                  await this.inventoryService.commitInventory(item.variantId, locationId, item.quantity, payment.orderId, tx);
-                }
-              }
-            }
+        await this.prisma.$transaction(async (tx) => {
+          // Atomic status update: returns count=0 if already marked PAID concurrently
+          const updateResult = await tx.payment.updateMany({
+            where: {
+              id: payment.id,
+              status: { not: PaymentStatus.PAID },
+            },
+            data: {
+              status: PaymentStatus.PAID,
+              providerPaymentId: rzpPaymentId,
+              paidAt: new Date(),
+            },
           });
 
-          await this.auditService.logAction({
-            action: "UPDATE",
-            entityType: "Payment",
-            entityId: payment.id,
-            actorUserId: "SYSTEM",
-            metadata: { status: "PAID", source: "Webhook" },
-          });
-        }
+          if (updateResult.count === 0) {
+            return; // Idempotent: already processed by client verification or duplicate webhook
+          }
+
+          await this.paymentRepo.updateOrderPaymentStatus(payment.orderId, PaymentStatus.PAID, OrderStatus.CONFIRMED, tx);
+          
+          const locationId = await this.inventoryService.getDefaultLocationId(tx);
+          const orderWithItems = await tx.order.findUnique({ where: { id: payment.orderId }, include: { items: true } });
+          if (orderWithItems) {
+            for (const item of orderWithItems.items) {
+              if (item.variantId) {
+                await this.inventoryService.commitInventory(item.variantId, locationId, item.quantity, payment.orderId, tx);
+              }
+            }
+          }
+        });
+
+        await this.auditService.logAction({
+          action: "UPDATE",
+          entityType: "Payment",
+          entityId: payment.id,
+          actorUserId: "SYSTEM",
+          metadata: { status: "PAID", source: "Webhook" },
+        });
         break;
 
       case "payment.failed":
-        if (payment.status !== PaymentStatus.FAILED && payment.status !== PaymentStatus.PAID) {
-          await this.paymentRepo.updateStatus(payment.id, PaymentStatus.FAILED, {
-            providerPaymentId: rzpPaymentId,
-          });
-          await this.paymentRepo.updateOrderPaymentStatus(payment.orderId, PaymentStatus.FAILED, OrderStatus.CANCELLED);
+        await this.prisma.$transaction(async (tx) => {
+          const freshPayment = await tx.payment.findUnique({ where: { id: payment.id } });
+          if (!freshPayment || freshPayment.status === PaymentStatus.FAILED || freshPayment.status === PaymentStatus.PAID) {
+            return; // Idempotent
+          }
+
+          await this.paymentRepo.updateStatus(
+            payment.id,
+            PaymentStatus.FAILED,
+            {
+              providerPaymentId: rzpPaymentId,
+            },
+            tx
+          );
+          await this.paymentRepo.updateOrderPaymentStatus(payment.orderId, PaymentStatus.FAILED, OrderStatus.CANCELLED, tx);
           
-          await this.prisma.$transaction(async (tx) => {
-            const locationId = await this.inventoryService.getDefaultLocationId(tx);
-            const orderWithItems = await tx.order.findUnique({ where: { id: payment.orderId }, include: { items: true } });
-            if (orderWithItems) {
-              for (const item of orderWithItems.items) {
-                if (item.variantId) {
-                  await this.inventoryService.releaseInventory(item.variantId, locationId, item.quantity, payment.orderId, tx);
-                }
+          const locationId = await this.inventoryService.getDefaultLocationId(tx);
+          const orderWithItems = await tx.order.findUnique({ where: { id: payment.orderId }, include: { items: true } });
+          if (orderWithItems) {
+            for (const item of orderWithItems.items) {
+              if (item.variantId) {
+                await this.inventoryService.releaseInventory(item.variantId, locationId, item.quantity, payment.orderId, tx);
               }
             }
-          });
+          }
+        });
 
-          await this.auditService.logAction({
-            action: "UPDATE",
-            entityType: "Payment",
-            entityId: payment.id,
-            actorUserId: "SYSTEM",
-            metadata: { status: "FAILED", source: "Webhook" },
-          });
-        }
+        await this.auditService.logAction({
+          action: "UPDATE",
+          entityType: "Payment",
+          entityId: payment.id,
+          actorUserId: "SYSTEM",
+          metadata: { status: "FAILED", source: "Webhook" },
+        });
         break;
 
       case "refund.processed":

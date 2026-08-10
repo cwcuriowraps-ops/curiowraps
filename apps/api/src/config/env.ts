@@ -84,6 +84,39 @@ function parseCorsOrigins(rawOrigins: string | undefined, defaults: string[]) {
 export function createApiConfig(env: typeof process.env = process.env): ApiConfig {
   const parsed = runtimeEnvSchema.parse(env);
 
+  // Strict production startup validation
+  if (parsed.NODE_ENV === "production") {
+    const missing: string[] = [];
+
+    if (!parsed.DATABASE_URL || parsed.DATABASE_URL.includes("localhost") || parsed.DATABASE_URL.includes("127.0.0.1")) {
+      missing.push("DATABASE_URL must point to a remote PostgreSQL database (not localhost) in production");
+    }
+    if (parsed.JWT_ACCESS_SECRET === "dev-access-token-secret-change-me" || parsed.JWT_ACCESS_SECRET.length < 32) {
+      missing.push("JWT_ACCESS_SECRET must be a secure random string (at least 32 characters) in production");
+    }
+    if (parsed.JWT_REFRESH_SECRET === "dev-refresh-token-secret-change-me" || parsed.JWT_REFRESH_SECRET.length < 32) {
+      missing.push("JWT_REFRESH_SECRET must be a secure random string (at least 32 characters) in production");
+    }
+    if (parsed.STOREFRONT_URL.includes("localhost") || parsed.STOREFRONT_URL.includes("127.0.0.1")) {
+      missing.push("STOREFRONT_URL must be configured with a production domain (not localhost) in production");
+    }
+    if (parsed.ADMIN_URL.includes("localhost") || parsed.ADMIN_URL.includes("127.0.0.1")) {
+      missing.push("ADMIN_URL must be configured with a production domain (not localhost) in production");
+    }
+    if (env.RAZORPAY_KEY_ID && (!env.RAZORPAY_KEY_SECRET || env.RAZORPAY_KEY_SECRET === "dummy_secret")) {
+      missing.push("RAZORPAY_KEY_SECRET must be set when RAZORPAY_KEY_ID is configured");
+    }
+    if (!env.RAZORPAY_WEBHOOK_SECRET || env.RAZORPAY_WEBHOOK_SECRET === "dummy_webhook_secret") {
+      missing.push("RAZORPAY_WEBHOOK_SECRET must be configured with a secret in production");
+    }
+
+    if (missing.length > 0) {
+      throw new Error(
+        `[Config Error] Missing or insecure production environment configuration:\n  - ${missing.join("\n  - ")}`
+      );
+    }
+  }
+
   return {
     name: appConfig.name,
     apiVersion: appConfig.apiVersion,

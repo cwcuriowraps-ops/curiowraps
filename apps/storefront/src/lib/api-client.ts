@@ -1,4 +1,12 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const getApiUrl = (): string => {
+  let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+  if (url.startsWith("NEXT_PUBLIC_API_URL=")) {
+    url = url.substring("NEXT_PUBLIC_API_URL=".length);
+  }
+  return url.replace(/\/+$/, "");
+};
+
+export const API_URL = getApiUrl();
 
 import { useAuthStore } from "../store/useAuthStore";
 

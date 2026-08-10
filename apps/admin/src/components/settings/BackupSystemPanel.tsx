@@ -4,7 +4,7 @@ import { Button, Card, CardHeader, CardTitle, CardContent, useToast } from "@das
 import { useQuery } from "@tanstack/react-query";
 import { Download, Database, HardDrive, Server } from "lucide-react";
 
-import { apiClient } from "../../lib/api-client";
+import { API_URL, apiClient } from "../../lib/api-client";
 import { useAuthStore } from "../../store/useAuthStore";
 
 export function BackupSystemPanel() {
@@ -25,7 +25,7 @@ export function BackupSystemPanel() {
 
   const handleExport = (type: string) => {
     addToast({ title: "Export Started", description: `Downloading ${type} CSV backup...`, type: "info" });
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/admin/system/export?type=${type}`;
+    window.location.href = `${API_URL}/admin/system/export?type=${type}`;
   };
 
   return (

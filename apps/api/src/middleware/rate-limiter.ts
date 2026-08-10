@@ -6,7 +6,7 @@ import type { RedisService } from "../services/redis.service";
 export function createRateLimiter(redisService: RedisService) {
   const client = redisService.getClient();
   const isDev = process.env.NODE_ENV === "development";
-  const maxRequests = isDev ? 10000 : 100;
+  const maxRequests = isDev ? 10000 : 300;
 
   if (!client) {
     console.warn(`Redis client not available, using memory store for rate limiting (max: ${maxRequests}).`);
@@ -23,9 +23,12 @@ export function createRateLimiter(redisService: RedisService) {
     max: maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
+    passOnStoreError: true,
     store: new RedisStore({
-      // @ts-expect-error - rate-limit-redis has some type issues with ioredis, but it works
-      sendCommand: (...args: string[]) => client.call(...args),
+      sendCommand: async (...args: string[]) => {
+        // Use apply to avoid TS2556 spread-into-overloaded-call error
+        return (client.call as Function).apply(client, args);
+      },
     }),
   });
 }
@@ -49,9 +52,12 @@ export function createAuthRateLimiter(redisService: RedisService) {
     max: maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
+    passOnStoreError: true,
     store: new RedisStore({
-      // @ts-expect-error
-      sendCommand: (...args: string[]) => client.call(...args),
+      sendCommand: async (...args: string[]) => {
+        // Use apply to avoid TS2556 spread-into-overloaded-call error
+        return (client.call as Function).apply(client, args);
+      },
     }),
   });
 }

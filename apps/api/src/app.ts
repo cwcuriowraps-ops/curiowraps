@@ -187,22 +187,34 @@ export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
   // Rate limiting
   app.use(createRateLimiter(deps.redisService));
   
-  // DEBUG ONLY
-  console.log("========== CORS DEBUG ==========");
-  console.log("ADMIN_URL:", process.env.ADMIN_URL);
-  console.log("STOREFRONT_URL:", process.env.STOREFRONT_URL);
-  console.log("CORS_ORIGINS:", process.env.CORS_ORIGINS);
-  console.log("Parsed corsOrigins:", deps.config.corsOrigins);
-  console.log("================================");
-
-  // DEBUG ONLY
+  // Configure strict CORS origin checking
   app.use(
     cors({
       origin(origin, callback) {
-        console.log("Incoming Origin:", origin);
-        console.log("Allowed Origins:", deps.config.corsOrigins);
+        // Server-to-server or non-browser requests (no Origin header)
+        if (!origin) {
+          return callback(null, true);
+        }
 
-        callback(null, true);
+        // Exact match against configured CORS origins (STOREFRONT_URL, ADMIN_URL, or CORS_ORIGINS)
+        if (deps.config.corsOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // In development & test environments, permit local development hosts
+        if (deps.config.nodeEnv !== "production") {
+          try {
+            const parsed = new URL(origin);
+            if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+              return callback(null, true);
+            }
+          } catch {
+            // Ignore URL parse failures
+          }
+        }
+
+        // Reject disallowed origin in production
+        return callback(new Error(`CORS error: Origin ${origin} is not allowed`));
       },
       credentials: true,
     }),

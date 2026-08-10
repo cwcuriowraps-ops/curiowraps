@@ -222,11 +222,24 @@ export class AuthService {
     const tokenHash = hashToken(refreshToken, this.deps.config.jwtRefreshSecret);
     const existingToken = await this.refreshTokenRepository.findByTokenHash(tokenHash);
 
-    if (!existingToken || existingToken.revokedAt || existingToken.expiresAt < new Date()) {
+    if (!existingToken || existingToken.expiresAt < new Date()) {
       throw new AppError(401, "INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired");
     }
 
-    if (existingToken.replacedByTokenId) {
+    // Concurrent Refresh Protection: 10-second rotation grace window
+    if (existingToken.revokedAt || existingToken.replacedByTokenId) {
+      const REFRESH_TOKEN_GRACE_WINDOW_MS = 10_000;
+      const revokedAtMs = existingToken.revokedAt ? new Date(existingToken.revokedAt).getTime() : 0;
+      const timeSinceRevocation = Date.now() - revokedAtMs;
+
+      if (existingToken.revokedAt && timeSinceRevocation >= 0 && timeSinceRevocation <= REFRESH_TOKEN_GRACE_WINDOW_MS) {
+        const user = await this.userRepository.findById(payload.userId);
+        if (user && !user.deletedAt && user.status === "ACTIVE") {
+          const tokens = this.buildTokens(user.id, user.email, user.role.name);
+          return { user: toPublicUser(user), tokens };
+        }
+      }
+
       throw new AppError(401, "REFRESH_TOKEN_REUSED", "Refresh token has already been rotated");
     }
 

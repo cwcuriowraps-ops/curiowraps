@@ -17,11 +17,10 @@ const inter = Inter({
 });
 
 const cormorant = Cormorant_Garamond({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   subsets: ["latin"],
   variable: "--font-cormorant",
   display: "swap",
-  style: ["normal", "italic"]
 });
 
 export const metadata: Metadata = {
