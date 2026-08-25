@@ -25,6 +25,8 @@ export class ProductRepository {
   async findPage(options: {
     includeInactive?: boolean;
     includeDeleted?: boolean;
+    onlyDeleted?: boolean;
+    status?: string;
     page?: number;
     limit?: number;
     search?: string;
@@ -38,6 +40,8 @@ export class ProductRepository {
     const {
       includeInactive = false,
       includeDeleted = false,
+      onlyDeleted = false,
+      status,
       page = 1,
       limit = 20,
       search,
@@ -49,43 +53,88 @@ export class ProductRepository {
       includeInventory = false,
     } = options;
 
+    const isUuid = (val?: string) => val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const hasValidCategory = categoryId && categoryId.trim() !== "" && categoryId.trim().toLowerCase() !== "all";
+    const hasValidBrandId = brandId && brandId.trim() !== "" && brandId.trim().toLowerCase() !== "all";
+    const hasValidBrandSlug = brandSlug && brandSlug.trim() !== "" && brandSlug.trim().toLowerCase() !== "all";
+
     const where: any = {
-      ...(includeDeleted ? {} : { deletedAt: null }),
-      ...(includeInactive ? {} : { status: "ACTIVE" }),
       ...(isFeatured === undefined ? {} : { isFeatured }),
-      ...(categoryId ? { categories: { some: { categoryId } } } : {}),
-      ...(brandId ? { brandId } : {}),
-      ...(brandSlug ? { brand: { slug: brandSlug } } : {}),
+      ...(hasValidCategory
+        ? isUuid(categoryId.trim())
+          ? { categories: { some: { categoryId: categoryId.trim(), category: { deletedAt: null } } } }
+          : { categories: { some: { category: { slug: { equals: categoryId.trim(), mode: "insensitive" }, deletedAt: null } } } }
+        : {}),
+      ...(hasValidBrandId ? { brandId: brandId.trim() } : {}),
+      ...(hasValidBrandSlug ? { brand: { slug: { equals: brandSlug.trim(), mode: "insensitive" } } } : {}),
     };
 
-    if (search) {
+    if (onlyDeleted || status === "DELETED") {
+      where.deletedAt = { not: null };
+    } else {
+      if (!includeDeleted) {
+        where.deletedAt = null;
+      }
+      if (status && status !== "ALL" && status !== "DELETED") {
+        where.status = status;
+      } else if (!includeInactive) {
+        where.status = "ACTIVE";
+      }
+    }
+
+    if (search && search.trim() !== "") {
+      const trimmedSearch = search.trim();
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { slug: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+        { name: { contains: trimmedSearch, mode: "insensitive" } },
+        { slug: { contains: trimmedSearch, mode: "insensitive" } },
+        { description: { contains: trimmedSearch, mode: "insensitive" } },
       ];
     }
 
     const orderBy = sort === "createdAt_asc" ? ({ createdAt: "asc" } as const) : ({ createdAt: "desc" } as const);
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy,
-        include: {
-          brand: true,
-          categories: { include: { category: true } },
-          variants: {
-            where: includeInactive ? {} : { deletedAt: null, isActive: true },
-            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-            ...(includeInventory ? { include: { inventory: true } } : {}),
-          },
-          images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] },
+    const products = await this.prisma.product.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy,
+      include: {
+        brand: {
+          select: { id: true, name: true, slug: true },
         },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
+        categories: {
+          where: { category: { deletedAt: null } },
+          select: {
+            categoryId: true,
+            sortOrder: true,
+            category: { select: { id: true, name: true, slug: true } },
+          },
+        },
+        variants: {
+          where: includeInactive ? {} : { deletedAt: null, isActive: true },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            sku: true,
+            title: true,
+            price: true,
+            isDefault: true,
+            ...(includeInventory ? { inventory: { select: { quantityOnHand: true, reservedQuantity: true } } } : {}),
+          },
+        },
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+          select: { id: true, url: true, isPrimary: true, sortOrder: true },
+        },
+      },
+    });
+
+    let total: number;
+    if (page === 1 && products.length < limit) {
+      total = products.length;
+    } else {
+      total = await this.prisma.product.count({ where });
+    }
 
     return { products, total };
   }

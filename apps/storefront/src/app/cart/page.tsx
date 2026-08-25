@@ -4,6 +4,8 @@ import { Button, useToast } from "@dashboard/ui";
 import Link from "next/link";
 
 import { useCart, useRemoveCartItem, useUpdateCartItem } from "@/api/cart";
+import { getImageUrl } from "@/lib/image-utils";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function CartPage() {
@@ -29,17 +31,10 @@ export default function CartPage() {
     updateItem.mutate(
       { itemId, quantity },
       {
-        onSuccess: () => {
+        onError: (err) => {
           addToast({
-            title: "Cart Updated",
-            description: `Updated quantity to ${quantity}.`,
-            type: "info",
-          });
-        },
-        onError: (err: any) => {
-          addToast({
-            title: "Could not update quantity",
-            description: err.message || "Failed to update item.",
+            title: "Update Failed",
+            description: sanitizeErrorMessage(err, "Could not update cart quantity. Please try again."),
             type: "error",
           });
         },
@@ -47,19 +42,12 @@ export default function CartPage() {
     );
   };
 
-  const handleRemoveItem = (itemId: string, productName?: string) => {
+  const handleRemoveItem = (itemId: string, _productName?: string) => {
     removeItem.mutate(itemId, {
-      onSuccess: () => {
-        addToast({
-          title: "Item Removed",
-          description: productName ? `'${productName}' removed from cart.` : "Item removed from cart.",
-          type: "info",
-        });
-      },
-      onError: (err: any) => {
+      onError: (err) => {
         addToast({
           title: "Removal Failed",
-          description: err.message || "Failed to remove item.",
+          description: sanitizeErrorMessage(err, "Could not remove item from cart. Please try again."),
           type: "error",
         });
       },
@@ -101,7 +89,7 @@ export default function CartPage() {
                   <div className="flex-shrink-0">
                     {item.variant?.product?.images?.[0]?.url ? (
                       <img
-                        src={encodeURI(item.variant.product.images[0].url)}
+                        src={getImageUrl(item.variant.product.images[0].url)}
                         alt={item.variant?.product?.name || "Product"}
                         className="h-32 w-32 rounded-xl object-cover object-center bg-muted"
                       />

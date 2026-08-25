@@ -103,12 +103,7 @@ export function createApiConfig(env: typeof process.env = process.env): ApiConfi
     if (parsed.ADMIN_URL.includes("localhost") || parsed.ADMIN_URL.includes("127.0.0.1")) {
       missing.push("ADMIN_URL must be configured with a production domain (not localhost) in production");
     }
-    if (env.RAZORPAY_KEY_ID && (!env.RAZORPAY_KEY_SECRET || env.RAZORPAY_KEY_SECRET === "dummy_secret")) {
-      missing.push("RAZORPAY_KEY_SECRET must be set when RAZORPAY_KEY_ID is configured");
-    }
-    if (!env.RAZORPAY_WEBHOOK_SECRET || env.RAZORPAY_WEBHOOK_SECRET === "dummy_webhook_secret") {
-      missing.push("RAZORPAY_WEBHOOK_SECRET must be configured with a secret in production");
-    }
+
 
     if (missing.length > 0) {
       throw new Error(

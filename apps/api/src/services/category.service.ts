@@ -19,6 +19,26 @@ export interface CreateCategoryInput {
 
 export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
 
+const CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let cachedCategories: { key: string; data: any; time: number }[] = [];
+
+function getCachedCategories(key: string) {
+  const entry = cachedCategories.find((c) => c.key === key);
+  if (entry && Date.now() - entry.time < CATEGORIES_CACHE_TTL_MS) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedCategories(key: string, data: any) {
+  cachedCategories = cachedCategories.filter((c) => c.key !== key);
+  cachedCategories.push({ key, data, time: Date.now() });
+}
+
+export function invalidateCategoriesMemoryCache() {
+  cachedCategories = [];
+}
+
 export class CategoryService {
   private readonly auditService: AuditService;
 
@@ -31,14 +51,14 @@ export class CategoryService {
   }
 
   async getAllCategories(includeInactive = false, isFeatured?: boolean) {
-    if (!includeInactive && isFeatured === undefined) {
-      const cached = await this.redisService.get<any[]>("categories:all:active");
-      if (cached) return cached;
+    const cacheKey = `${includeInactive}_${isFeatured}`;
+    const cached = getCachedCategories(cacheKey);
+    if (cached) {
+      return cached;
     }
+
     const categories = await this.categoryRepository.findAll(includeInactive, isFeatured);
-    if (!includeInactive && isFeatured === undefined) {
-      await this.redisService.set("categories:all:active", categories, 3600);
-    }
+    setCachedCategories(cacheKey, categories);
     return categories;
   }
 
@@ -49,14 +69,8 @@ export class CategoryService {
   }
 
   async getCategoryBySlug(slug: string) {
-    const cacheKey = `category:slug:${slug}`;
-    const cached = await this.redisService.get<any>(cacheKey);
-    if (cached) return cached;
-
     const category = await this.categoryRepository.findBySlug(slug);
     if (!category) throw new AppError(404, "NOT_FOUND", "Category not found");
-
-    await this.redisService.set(cacheKey, category, 3600);
     return category;
   }
 
@@ -96,6 +110,7 @@ export class CategoryService {
 
       await this.redisService.invalidatePattern(`category:*`);
       await this.redisService.invalidatePattern(`categories:*`);
+      invalidateCategoriesMemoryCache();
 
       return category;
     } catch (error: any) {
@@ -159,6 +174,7 @@ export class CategoryService {
 
       await this.redisService.invalidatePattern(`category:*`);
       await this.redisService.invalidatePattern(`categories:*`);
+      invalidateCategoriesMemoryCache();
 
       return updatedCategory;
     } catch (error: any) {
@@ -186,6 +202,7 @@ export class CategoryService {
 
     await this.redisService.invalidatePattern(`category:*`);
     await this.redisService.invalidatePattern(`categories:*`);
+    invalidateCategoriesMemoryCache();
   }
 
   async restoreCategory(id: string, actorUserId: string, context: any) {
@@ -204,5 +221,6 @@ export class CategoryService {
 
     await this.redisService.invalidatePattern(`category:*`);
     await this.redisService.invalidatePattern(`categories:*`);
+    invalidateCategoriesMemoryCache();
   }
 }

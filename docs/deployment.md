@@ -15,8 +15,7 @@ This guide covers deploying Curio Wrap to a production environment.
 1. Create a [Supabase](https://supabase.com) project for PostgreSQL.
 2. Create an [Upstash](https://upstash.com) Redis database.
 3. Create a [Cloudinary](https://cloudinary.com) account.
-4. Create a [Razorpay](https://razorpay.com) account.
-5. Setup an email provider (Brevo SMTP, SendGrid, AWS SES).
+4. Setup an email provider (Brevo SMTP, SendGrid, AWS SES).
 
 ## 1. Environment Configuration
 

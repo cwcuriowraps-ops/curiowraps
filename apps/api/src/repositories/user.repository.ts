@@ -1,26 +1,44 @@
 import type { Prisma } from "@dashboard/database";
 
+const userAuthSelect = {
+  id: true,
+  email: true,
+  passwordHash: true,
+  firstName: true,
+  lastName: true,
+  avatarUrl: true,
+  status: true,
+  deletedAt: true,
+  emailVerifiedAt: true,
+  dateOfBirth: true,
+  gender: true,
+  createdAt: true,
+  updatedAt: true,
+  role: {
+    select: {
+      id: true,
+      name: true,
+      permissions: {
+        select: {
+          permission: {
+            select: {
+              code: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export class UserRepository {
   constructor(private readonly prisma: any) {}
 
   async findByEmail(email: string) {
-    // NOTE: Do NOT add a $queryRaw ping here — under Supabase pgBouncer Transaction Mode
-    // every statement checks out a connection. A separate ping before the real query
-    // doubles the checkout count and causes P1001 pool-exhaustion errors.
     try {
       const user = await this.prisma.user.findUnique({
         where: { email },
-        include: { 
-          role: { 
-            include: { 
-              permissions: { 
-                include: { 
-                  permission: true 
-                } 
-              } 
-            } 
-          } 
-        },
+        select: userAuthSelect,
       });
       return user;
     } catch (error) {
@@ -32,34 +50,14 @@ export class UserRepository {
   findById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: { 
-        role: { 
-          include: { 
-            permissions: { 
-              include: { 
-                permission: true 
-              } 
-            } 
-          } 
-        } 
-      },
+      select: userAuthSelect,
     });
   }
 
   create(data: Prisma.UserCreateInput) {
     return this.prisma.user.create({
       data,
-      include: { 
-        role: { 
-          include: { 
-            permissions: { 
-              include: { 
-                permission: true 
-              } 
-            } 
-          } 
-        } 
-      },
+      select: userAuthSelect,
     });
   }
 
@@ -67,17 +65,7 @@ export class UserRepository {
     return this.prisma.user.update({
       where: { id },
       data: { lastLoginAt },
-      include: { 
-        role: { 
-          include: { 
-            permissions: { 
-              include: { 
-                permission: true 
-              } 
-            } 
-          } 
-        } 
-      },
+      select: { id: true, lastLoginAt: true },
     });
   }
 }

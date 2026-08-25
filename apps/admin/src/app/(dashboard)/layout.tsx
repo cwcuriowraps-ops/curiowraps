@@ -12,16 +12,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user } = useAuthStore();
   const { addToast } = useToast();
 
-  const handleLogout = () => {
-    addToast({
-      title: "Logged out",
-      description: "Signed out of Admin Dashboard.",
-      type: "info",
-    });
-    apiClient("/auth/logout", { method: "POST" }).finally(() => {
+  const handleLogout = async () => {
+    try {
+      await apiClient("/auth/logout", { method: "POST" });
+      addToast({
+        title: "Signed Out",
+        description: "Signed out successfully.",
+        type: "success",
+      });
+    } catch {
+      addToast({
+        title: "Logout Failed",
+        description: "Could not sign out. Please try again.",
+        type: "error",
+      });
+    } finally {
       useAuthStore.getState().logout();
       if (typeof window !== "undefined") window.location.assign("/login");
-    });
+    }
   };
 
   return (

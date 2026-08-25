@@ -104,4 +104,16 @@ export class CartRepository {
       where: { cartId },
     });
   }
+
+  async clearByUserId(userId: string) {
+    return this.prisma.cartItem.deleteMany({
+      where: { cart: { userId } },
+    });
+  }
+
+  async clearBySessionId(sessionId: string) {
+    return this.prisma.cartItem.deleteMany({
+      where: { cart: { sessionId } },
+    });
+  }
 }

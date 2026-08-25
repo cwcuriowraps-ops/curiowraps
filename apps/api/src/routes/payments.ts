@@ -15,8 +15,7 @@ export function createPublicPaymentRouter({
 
   router.use(requireAuth);
 
-  router.post("/razorpay/create", paymentController.createRazorpayOrder);
-  router.post("/razorpay/verify", paymentController.verifyRazorpayPayment);
+  router.post("/upi/create", paymentController.createUpiPayment);
   router.post("/cod/create", paymentController.createCodPayment);
 
   return router;

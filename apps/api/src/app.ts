@@ -117,7 +117,7 @@ function createDependencies(overrides: Partial<ApiDependencies> = {}): ApiDepend
   const auditService = new AuditService(prisma);
   const redisService = overrides.redisService ?? new RedisService();
   
-  const emailProvider = (process.env.BREVO_SMTP_USER && process.env.BREVO_SMTP_PASS) || process.env.BREVO_SMTP_HOST
+  const emailProvider = process.env.BREVO_SMTP_USER && process.env.BREVO_SMTP_PASS
     ? new BrevoEmailProvider()
     : new ConsoleEmailProvider();
     
@@ -137,42 +137,48 @@ function createDependencies(overrides: Partial<ApiDependencies> = {}): ApiDepend
     })
     .catch(() => {});
 
-  return {
-    config,
-    logger: overrides.logger ?? createLogger(config),
-    prisma,
-    authService:
-      overrides.authService ??
-      new AuthService({
-        config,
-        logger: overrides.logger ?? createLogger(config),
-        prisma,
-        queueService: queueService,
-      }),
-    userService: overrides.userService ?? new UserService(prisma, config.bcryptRounds),
-    adminUserService: overrides.adminUserService ?? new AdminUserService(prisma),
-    
-    categoryService: overrides.categoryService ?? new CategoryService(prisma, categoryRepo, redisService),
-    brandService: overrides.brandService ?? new BrandService(prisma, brandRepo),
-    productService: overrides.productService ?? new ProductService(prisma, productRepo, brandRepo, redisService),
-    variantService: overrides.variantService ?? new VariantService(prisma, variantRepo, productRepo),
-    attributeService: overrides.attributeService ?? new AttributeService(prisma, attributeRepo),
-    inventoryService: overrides.inventoryService ?? new InventoryService(prisma, inventoryRepo, variantRepo),
-    searchRepository: overrides.searchRepository ?? searchRepository,
-    
-    mediaService: overrides.mediaService ?? new MediaService(prisma, mediaRepo),
-    cartService: overrides.cartService ?? new CartService(prisma, cartRepo, variantRepo, settingRepository),
-    wishlistService: overrides.wishlistService ?? new WishlistService(wishlistRepo, productRepo, overrides.cartService ?? new CartService(prisma, cartRepo, variantRepo, settingRepository)),
-    couponService: overrides.couponService ?? new CouponService(prisma, couponRepo),
-    orderService: overrides.orderService ?? new OrderService(prisma, orderRepo, overrides.cartService ?? new CartService(prisma, cartRepo, variantRepo, settingRepository), overrides.couponService ?? new CouponService(prisma, couponRepo), overrides.inventoryService ?? new InventoryService(prisma, inventoryRepo, variantRepo)),
-    shippingService: overrides.shippingService ?? new ShippingService(prisma, shippingRepo),
-    paymentService: overrides.paymentService ?? new PaymentService(prisma, paymentRepo, orderRepo, overrides.inventoryService ?? new InventoryService(prisma, inventoryRepo, variantRepo), auditService, queueService),
-    redisService,
-    queueService,
-    notificationService,
-    settingRepository,
-    contactRepository: overrides.contactRepository ?? new ContactRepository(prisma),
-  };
+    const inventoryService = overrides.inventoryService ?? new InventoryService(prisma, inventoryRepo, variantRepo);
+    const cartService = overrides.cartService ?? new CartService(prisma, cartRepo, variantRepo, settingRepository);
+    const couponService = overrides.couponService ?? new CouponService(prisma, couponRepo);
+    const orderService = overrides.orderService ?? new OrderService(prisma, orderRepo, cartService, couponService, inventoryService, queueService);
+    const paymentService = overrides.paymentService ?? new PaymentService(prisma, paymentRepo, orderRepo, inventoryService, auditService, queueService);
+
+    return {
+      config,
+      logger: overrides.logger ?? createLogger(config),
+      prisma,
+      authService:
+        overrides.authService ??
+        new AuthService({
+          config,
+          logger: overrides.logger ?? createLogger(config),
+          prisma,
+          queueService: queueService,
+        }),
+      userService: overrides.userService ?? new UserService(prisma, config.bcryptRounds),
+      adminUserService: overrides.adminUserService ?? new AdminUserService(prisma),
+      
+      categoryService: overrides.categoryService ?? new CategoryService(prisma, categoryRepo, redisService),
+      brandService: overrides.brandService ?? new BrandService(prisma, brandRepo),
+      productService: overrides.productService ?? new ProductService(prisma, productRepo, brandRepo, redisService),
+      variantService: overrides.variantService ?? new VariantService(prisma, variantRepo, productRepo),
+      attributeService: overrides.attributeService ?? new AttributeService(prisma, attributeRepo),
+      inventoryService,
+      searchRepository: overrides.searchRepository ?? searchRepository,
+      
+      mediaService: overrides.mediaService ?? new MediaService(prisma, mediaRepo),
+      cartService,
+      wishlistService: overrides.wishlistService ?? new WishlistService(wishlistRepo, productRepo, cartService),
+      couponService,
+      orderService,
+      shippingService: overrides.shippingService ?? new ShippingService(prisma, shippingRepo),
+      paymentService,
+      redisService,
+      queueService,
+      notificationService,
+      settingRepository,
+      contactRepository: overrides.contactRepository ?? new ContactRepository(prisma),
+    };
 }
 
 export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
@@ -183,9 +189,6 @@ export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(compression());
   app.use(cookieParser());
-  
-  // Rate limiting
-  app.use(createRateLimiter(deps.redisService));
   
   // Configure strict CORS origin checking
   app.use(
@@ -220,20 +223,25 @@ export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
     }),
   );
 
-  // Mount webhooks before express.json so that we can receive raw buffers for signature verification
-  app.use(`${appConfig.apiPrefix}/webhooks/razorpay`, express.raw({ type: "application/json" }), createWebhookRouter(deps));
-
-  app.use(express.json({ limit: "1mb" }));
-  app.use(express.urlencoded({ extended: true }));
-  app.use(createRequestLogger(deps.logger));
-
+  // Static uploads (bypasses rate limiting and body parsing)
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads"), {
     maxAge: "31536000s",
     immutable: true,
   }));
 
+  // System & Health routes (bypasses rate limiting)
   app.use("/", createSystemRouter(deps));
   app.use(appConfig.apiPrefix, createSystemRouter(deps));
+
+  // Rate limiting
+  app.use(createRateLimiter(deps.redisService));
+
+  app.use(`${appConfig.apiPrefix}/webhooks`, createWebhookRouter(deps));
+
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ extended: true }));
+  app.use(createRequestLogger(deps.logger));
+
   app.use(`${appConfig.apiPrefix}/auth`, createAuthRouter({ authService: deps.authService, config: deps.config, redisService: deps.redisService }));
   app.use(`${appConfig.apiPrefix}/users`, createUserRouter({ userService: deps.userService, authService: deps.authService, config: deps.config }));
   app.use(`${appConfig.apiPrefix}/admin/users`, createAdminUserRouter({ adminUserService: deps.adminUserService, userService: deps.userService, authService: deps.authService, config: deps.config }));

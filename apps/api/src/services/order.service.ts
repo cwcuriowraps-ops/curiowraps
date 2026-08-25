@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@dashboard/database";
 
+import { invalidateDashboardStatsCache } from "../controllers/admin-system.controller";
 import { systemEvents, EVENTS } from "../lib/events";
 import { AppError } from "../middleware/error-handler";
 import { OrderRepository } from "../repositories/order.repository";
@@ -10,6 +11,7 @@ import { AuditService } from "./audit.service";
 import { CartService } from "./cart.service";
 import { CouponService } from "./coupon.service";
 import { InventoryService } from "./inventory.service";
+import type { QueueService } from "./queue.service";
 
 export class OrderService {
   private readonly auditService: AuditService;
@@ -19,7 +21,8 @@ export class OrderService {
     private readonly orderRepository: OrderRepository,
     private readonly cartService: CartService,
     private readonly couponService: CouponService,
-    private readonly inventoryService: InventoryService
+    private readonly inventoryService: InventoryService,
+    private readonly queueService?: QueueService
   ) {
     this.auditService = new AuditService(prisma);
   }
@@ -39,28 +42,55 @@ export class OrderService {
   }
 
   async createOrderFromCart(data: any, actorUserId: string, context: any) {
-    // 1. Resolve Cart
-    const cart = await this.cartService.getCart(undefined, actorUserId);
-    if (!cart || cart.items.length === 0) {
-      throw new AppError(400, "BAD_REQUEST", "Cart is empty");
+    let cartTotals;
+    let cartItems;
+    const isBuyNow = !!data.buyNowItem;
+
+    if (isBuyNow) {
+      // 1a. Resolve Buy Now Item
+      const variant = await this.prisma.productVariant.findUnique({
+        where: { id: data.buyNowItem.variantId },
+        include: { product: true }
+      });
+      if (!variant || variant.deletedAt || !variant.isActive) {
+        throw new AppError(400, "BAD_REQUEST", "Variant is not available");
+      }
+      const mockCart = {
+        items: [{
+          variant,
+          quantity: data.buyNowItem.quantity,
+          customization: data.buyNowItem.customization
+        }]
+      };
+      const calculated = await this.cartService.calculateTotals(mockCart);
+      cartTotals = calculated!.totals;
+      cartItems = calculated!.items;
+    } else {
+      // 1b. Resolve Cart
+      const cart = await this.cartService.getCart(undefined, actorUserId);
+      if (!cart || cart.items.length === 0) {
+        throw new AppError(400, "BAD_REQUEST", "Cart is empty");
+      }
+      cartTotals = cart.totals;
+      cartItems = cart.items;
     }
 
     // 2. Validate Coupon & Re-calculate totals
     let discountAmount = 0;
     let couponId = undefined;
     if (data.couponCode) {
-      const validation = await this.couponService.validateCoupon(data.couponCode, cart.totals.subtotal, actorUserId);
+      const validation = await this.couponService.validateCoupon(data.couponCode, cartTotals.subtotal, actorUserId);
       discountAmount = validation.discountAmount;
       couponId = validation.coupon.id;
     }
 
-    const subtotal = cart.totals.subtotal;
-    const tax = cart.totals.tax;
-    const shipping = cart.totals.shipping;
+    const subtotal = cartTotals.subtotal;
+    const tax = cartTotals.tax;
+    const shipping = cartTotals.shipping;
     const grandTotal = subtotal + tax + shipping - discountAmount;
 
     // 3. Create Immutable Order Snapshot
-    const orderItems = cart.items.map((item: any) => ({
+    const orderItems = cartItems.map((item: any) => ({
       variantId: item.variant.id,
       productId: item.variant.product.id,
       sku: item.variant.sku,
@@ -81,6 +111,8 @@ export class OrderService {
       },
     }));
 
+    const upiTxId = data.paymentMethod === "UPI" && data.upiTransactionId ? String(data.upiTransactionId).trim() : undefined;
+
     const orderData = {
       user: { connect: { id: actorUserId } },
       orderNumber: `CW-${Date.now()}-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -100,6 +132,15 @@ export class OrderService {
       items: {
         create: orderItems,
       },
+      payments: {
+        create: [{
+          provider: data.paymentMethod,
+          amount: grandTotal,
+          currency: "INR",
+          status: "PENDING",
+          ...(upiTxId ? { providerPaymentId: upiTxId, rawPayload: { upiTransactionId: upiTxId } } : {}),
+        }],
+      },
     };
 
     const locationId = await this.inventoryService.getDefaultLocationId();
@@ -108,7 +149,7 @@ export class OrderService {
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({ data: orderData as any, include: { items: true } });
 
-      for (const item of cart.items) {
+      for (const item of cartItems) {
         // Reserve inventory. Throws if out of stock, rolling back the transaction.
         await this.inventoryService.reserveInventory(item.variant.id, locationId, item.quantity, tx);
       }
@@ -116,8 +157,10 @@ export class OrderService {
       return newOrder;
     }, { maxWait: 10000, timeout: 20000 });
 
-    // 5. Clear Cart (Non-transactional, safe to run after success)
-    await this.cartService.clearCart(undefined, actorUserId);
+    // 5. Clear Cart (Non-transactional, safe to run after success) - ONLY if not a Buy Now order
+    if (!isBuyNow) {
+      await this.cartService.clearCartDirect(undefined, actorUserId);
+    }
 
     // 6. Record Redemption if coupon used
     if (couponId) {
@@ -147,18 +190,74 @@ export class OrderService {
     });
 
     systemEvents.emit(EVENTS.ORDER_CREATED, order);
+    invalidateDashboardStatsCache();
 
     return order;
   }
 
-  async updateOrderPaymentStatus(id: string, paymentStatus: string, actorUserId: string, context: any) {
+  async updateOrderPaymentStatus(id: string, newPaymentStatus: string, actorUserId: string, context: any) {
     const order = await this.orderRepository.findById(id);
     if (!order) throw new AppError(404, "NOT_FOUND", "Order not found");
 
-    const updated = await this.prisma.order.update({
-      where: { id },
-      data: { paymentStatus: paymentStatus as any },
-      include: { items: true },
+    const previousPaymentStatus = order.paymentStatus;
+
+    // Idempotent duplicate check: If status is already the requested status, return early
+    if (previousPaymentStatus === newPaymentStatus) {
+      return order;
+    }
+
+    const locationId = await this.inventoryService.getDefaultLocationId();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      let targetOrderStatus = order.status;
+
+      // Handle transition to PAID
+      if (newPaymentStatus === "PAID") {
+        if (order.status === "PENDING") {
+          targetOrderStatus = "CONFIRMED";
+        }
+
+        // Commit inventory if coming from PENDING
+        if (previousPaymentStatus === "PENDING") {
+          for (const item of order.items) {
+            if (item.variantId) {
+              await this.inventoryService.commitInventory(item.variantId, locationId, item.quantity, order.id, tx);
+            }
+          }
+        }
+      } else if (newPaymentStatus === "FAILED" || newPaymentStatus === "CANCELLED") {
+        targetOrderStatus = "CANCELLED";
+
+        // Release reserved inventory if cancelling a pending order
+        if (previousPaymentStatus === "PENDING") {
+          for (const item of order.items) {
+            if (item.variantId) {
+              await this.inventoryService.releaseInventory(item.variantId, locationId, item.quantity, order.id, tx);
+            }
+          }
+        }
+      }
+
+      // Update Order
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          paymentStatus: newPaymentStatus as any,
+          status: targetOrderStatus as any,
+        },
+        include: { items: true },
+      });
+
+      // Update associated Payment records
+      await tx.payment.updateMany({
+        where: { orderId: id },
+        data: {
+          status: newPaymentStatus as any,
+          ...(newPaymentStatus === "PAID" ? { paidAt: new Date() } : {}),
+        },
+      });
+
+      return updatedOrder;
     });
 
     await this.auditService.logAction({
@@ -166,12 +265,32 @@ export class OrderService {
       action: "UPDATE",
       entityType: "Order",
       entityId: id,
-      before: { paymentStatus: order.paymentStatus },
-      after: { paymentStatus: updated.paymentStatus },
+      before: { paymentStatus: previousPaymentStatus, status: order.status },
+      after: { paymentStatus: updated.paymentStatus, status: updated.status },
       ...context,
     });
 
+    // Send confirmation email when marked PAID for the first time
+    if (newPaymentStatus === "PAID" && previousPaymentStatus !== "PAID" && this.queueService) {
+      const user = await this.prisma.user.findUnique({ where: { id: order.userId } });
+      if (user) {
+        this.queueService.sendEmail("ORDER_CONFIRMATION", {
+          email: user.email,
+          firstName: user.firstName,
+          orderId: order.orderNumber,
+          total: order.grandTotal,
+        }).catch(console.error);
+
+        this.queueService.sendEmail("PAYMENT_SUCCESS", {
+          email: user.email,
+          firstName: user.firstName,
+          orderId: order.orderNumber,
+        }).catch(console.error);
+      }
+    }
+
     systemEvents.emit(EVENTS.ORDER_UPDATED, updated);
+    invalidateDashboardStatsCache();
     return updated;
   }
 
@@ -211,6 +330,7 @@ export class OrderService {
     });
 
     systemEvents.emit(EVENTS.ORDER_UPDATED, updatedOrder);
+    invalidateDashboardStatsCache();
 
     return updatedOrder;
   }
@@ -233,6 +353,8 @@ export class OrderService {
         ...context,
       });
     }
+
+    invalidateDashboardStatsCache();
 
     return result;
   }

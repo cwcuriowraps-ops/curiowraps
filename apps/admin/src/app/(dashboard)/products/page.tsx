@@ -3,16 +3,40 @@
 import { Badge, Button, Input, Modal, Skeleton, useToast } from "@dashboard/ui";
 import { Plus, Search, Edit, Trash2, Copy, Eye, ToggleLeft, ToggleRight, Archive, RefreshCcw, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useAdminProducts, useDeleteProduct, useCreateProduct, useUpdateProduct, useRestoreProduct } from "@/api/products";
 import { ActionsMenu } from "@/components/actions-menu";
+import { useDebounce } from "@/hooks/useDebounce";
+
+function getThumbnailUrl(url?: string, width = 100, height = 100): string {
+  if (!url) return "";
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    return url.replace("/upload/", `/upload/w_${width},h_${height},c_fill,f_auto,q_auto/`);
+  }
+  return url;
+}
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  // Include archived/deleted products by default in admin if API supports it via params.
-  const { data, isLoading } = useAdminProducts({ page, limit: 10, search, includeDeleted: true });
+  const debouncedSearch = useDebounce(search.trim(), 300);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  const queryParams = {
+    page,
+    limit: 10,
+    search: debouncedSearch || undefined,
+    ...(statusFilter === "DELETED"
+      ? { onlyDeleted: true, status: "DELETED" }
+      : statusFilter !== "ALL"
+        ? { status: statusFilter }
+        : {}),
+  };
+
+  const { data, isLoading, isError, error, refetch } = useAdminProducts(queryParams);
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const { mutate: createProduct, isPending: _isCreating } = useCreateProduct();
   const { mutate: updateProduct, isPending: _isUpdating } = useUpdateProduct();
@@ -117,6 +141,30 @@ export default function ProductsPage() {
             className="pl-9"
           />
         </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "ALL", label: "All Products" },
+            { id: "ACTIVE", label: "Active" },
+            { id: "DRAFT", label: "Draft" },
+            { id: "ARCHIVED", label: "Archived" },
+            { id: "DELETED", label: "Deleted" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setStatusFilter(tab.id);
+                setPage(1);
+              }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                statusFilter === tab.id
+                  ? "bg-accent text-white"
+                  : "bg-muted text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-surface overflow-hidden">
@@ -142,6 +190,18 @@ export default function ProductsPage() {
                     <td className="px-6 py-4"><Skeleton className="h-8 w-16 ml-auto" /></td>
                   </tr>
                 ))
+              ) : isError ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <p className="text-sm font-semibold text-red-500">Failed to load products</p>
+                    <p className="mt-1 text-xs text-text-secondary font-light">
+                      {(error as any)?.message || "Something went wrong while connecting to the server."}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                      Retry
+                    </Button>
+                  </td>
+                </tr>
               ) : data?.data?.products?.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
@@ -156,8 +216,9 @@ export default function ProductsPage() {
                       <div className="flex items-center gap-3">
                         {product.images?.[0]?.url ? (
                           <img 
-                            src={encodeURI(product.images[0].url)} 
+                            src={getThumbnailUrl(product.images[0].url, 100, 100)} 
                             alt={product.name}
+                            loading="lazy"
                             className={`h-10 w-10 rounded-md object-cover bg-muted ${product.deletedAt ? "opacity-50 grayscale" : ""}`}
                           />
                         ) : (
@@ -177,7 +238,14 @@ export default function ProductsPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-text-primary">{product.variants?.reduce((sum: number, v: any) => sum + v.inventory, 0) || 0} in stock</div>
+                      <div className="text-text-primary">
+                        {(product.variants?.reduce((sum: number, v: any) => {
+                          if (Array.isArray(v.inventory)) {
+                            return sum + v.inventory.reduce((iSum: number, inv: any) => iSum + (inv.quantityOnHand ?? 0), 0);
+                          }
+                          return sum + (typeof v.inventory === "number" ? v.inventory : 0);
+                        }, 0) ?? 0)} in stock
+                      </div>
                       <div className="text-xs text-text-secondary">{product.variants?.length || 0} variants</div>
                     </td>
                     <td className="px-6 py-4 text-text-primary font-medium">
@@ -196,7 +264,7 @@ export default function ProductsPage() {
                                 {
                                   label: "Edit Product",
                                   icon: Edit,
-                                  onClick: () => (window.location.href = `/products/${product.id}/edit`),
+                                  onClick: () => router.push(`/products/${product.id}/edit`),
                                 },
                                 {
                                   label: product.status === "ACTIVE" ? "Set as Draft" : "Activate Product",
@@ -249,6 +317,35 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Bottom Pagination Bar */}
+        {data?.meta && data.meta.pages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+            <span className="text-sm text-text-secondary">
+              Showing <span className="font-medium text-text-primary">{(page - 1) * 10 + 1}</span> to{" "}
+              <span className="font-medium text-text-primary">{Math.min(page * 10, data.meta.total)}</span> of{" "}
+              <span className="font-medium text-text-primary">{data.meta.total}</span> products
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= data.meta.pages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Product Confirmation Modal */}

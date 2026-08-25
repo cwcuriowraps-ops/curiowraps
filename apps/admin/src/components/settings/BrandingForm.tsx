@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Card, CardHeader, CardTitle, CardContent } from "@dashboard/ui";
+import { Button, Input, Card, CardHeader, CardTitle, CardContent, useToast } from "@dashboard/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -23,6 +23,7 @@ type BrandingValues = z.infer<typeof brandingSchema>;
 
 export function BrandingForm({ defaultValues }: { defaultValues: any }) {
   const { mutate: updateSettings, isPending } = useUpdateSettings();
+  const { addToast } = useToast();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
 
@@ -77,8 +78,17 @@ export function BrandingForm({ defaultValues }: { defaultValues: any }) {
       const result = await response.json();
       
       form.setValue(field, result.data.mediaAsset.publicUrl, { shouldDirty: true });
+      addToast({
+        title: "Image uploaded successfully",
+        type: "success",
+      });
     } catch (error) {
       console.error("BrandingForm upload error:", error);
+      addToast({
+        title: "Upload Failed",
+        description: "Image upload failed. Please try again.",
+        type: "error",
+      });
     } finally {
       if (field === "logoUrl") setUploadingLogo(false);
       else setUploadingFavicon(false);

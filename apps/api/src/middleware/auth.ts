@@ -17,10 +17,6 @@ function extractBearerToken(req: Request) {
     return header.slice(7).trim();
   }
 
-  if (req.query.token && typeof req.query.token === "string") {
-    return req.query.token;
-  }
-
   return undefined;
 }
 
@@ -36,8 +32,9 @@ export function createOptionalAuth(deps: AuthMiddlewareDeps) {
     try {
       req.authUser = await deps.authService.getCurrentUser(token);
       next();
-    } catch (error) {
-      next(error);
+    } catch {
+      // Optional auth: ignore invalid/expired token and proceed unauthenticated
+      next();
     }
   };
 }

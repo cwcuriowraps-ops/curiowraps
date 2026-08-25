@@ -6,13 +6,23 @@ import { useState } from "react";
 
 import { useAdminMedia, useDeleteMedia } from "@/api/media";
 import { MultiUploadModal } from "@/components/media/multi-upload-modal";
+import { useDebounce } from "@/hooks/useDebounce";
+
+function getThumbnailUrl(url?: string, width = 300, height = 300): string {
+  if (!url) return "";
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    return url.replace("/upload/", `/upload/w_${width},h_${height},c_fill,f_auto,q_auto/`);
+  }
+  return url;
+}
 
 export default function MediaPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search.trim(), 300);
   const [isMultiUploadOpen, setIsMultiUploadOpen] = useState(false);
   
-  const { data, isLoading, refetch } = useAdminMedia({ page, limit: 24, search });
+  const { data, isLoading, isError, error, refetch } = useAdminMedia({ page, limit: 24, search: debouncedSearch || undefined });
   const { mutate: deleteMedia, isPending: isDeleting } = useDeleteMedia();
   const { addToast } = useToast();
 
@@ -82,6 +92,17 @@ export default function MediaPage() {
             </div>
           ))}
         </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-red-500/30 bg-red-500/5 p-12 text-center">
+          <ImageIcon className="h-12 w-12 text-red-500 opacity-60" />
+          <h3 className="mt-4 text-lg font-medium text-text-primary">Failed to load media</h3>
+          <p className="mt-1 text-sm text-text-secondary">
+            {(error as any)?.message || "Something went wrong while connecting to the server."}
+          </p>
+          <Button className="mt-6" variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : data?.data?.media?.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface p-12 text-center">
           <ImageIcon className="h-12 w-12 text-text-secondary opacity-50" />
@@ -97,7 +118,12 @@ export default function MediaPage() {
             <div key={media.id} className="group relative flex flex-col gap-2 rounded-xl border border-border bg-surface p-2 transition-all hover:border-accent/50 hover:shadow-md">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
                 {media.mimeType?.startsWith('image/') || !media.mimeType ? (
-                  <img src={media.publicUrl || media.url} alt={media.storageKey || media.filename || media.title} className="h-full w-full object-cover" />
+                  <img
+                    src={getThumbnailUrl(media.publicUrl || media.url, 300, 300)}
+                    alt={media.storageKey || media.filename || media.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <FileIcon className="h-8 w-8 text-text-secondary" />

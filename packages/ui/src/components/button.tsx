@@ -53,10 +53,25 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: keyof typeof sizes;
   width?: keyof typeof widths;
   loading?: boolean;
+  loadingText?: string;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", width, loading, disabled, title, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      width,
+      loading,
+      loadingText,
+      disabled,
+      title,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     const ariaLabel = props["aria-label"] || (typeof title === "string" ? title : undefined);
 
     return (
@@ -65,10 +80,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         title={title}
         aria-label={ariaLabel}
+        aria-busy={loading ? true : undefined}
         className={cn(
           "inline-flex items-center justify-center whitespace-nowrap text-center transition-all duration-150 ease-out cursor-pointer select-none relative overflow-hidden",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none disabled:transform-none",
+          "disabled:pointer-events-none disabled:opacity-65 disabled:shadow-none disabled:transform-none",
           variants[variant] || variants.primary,
           sizes[size] || sizes.md,
           width ? widths[width] : undefined,
@@ -76,15 +92,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        <span className="inline-flex items-center justify-center gap-2.5">
+        <span className="inline-flex items-center justify-center gap-2 relative z-10">
           {loading && (
-            <svg className="h-4 w-4 animate-spin shrink-0 text-current" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+            <span className="relative flex h-2 w-2 shrink-0 items-center justify-center" aria-hidden="true">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+            </span>
           )}
-          <span>{children}</span>
+          <span>{loading && loadingText ? loadingText : children}</span>
+          {loading && (
+            <span className="inline-flex items-center gap-0.5 shrink-0 ml-0.5" aria-hidden="true">
+              <span className="h-1 w-1 rounded-full bg-current opacity-75 animate-[pulse_1s_ease-in-out_infinite]" />
+              <span className="h-1 w-1 rounded-full bg-current opacity-75 animate-[pulse_1s_ease-in-out_0.2s_infinite]" />
+              <span className="h-1 w-1 rounded-full bg-current opacity-75 animate-[pulse_1s_ease-in-out_0.4s_infinite]" />
+            </span>
+          )}
         </span>
+        {loading && (
+          <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite] pointer-events-none" />
+        )}
       </button>
     );
   }

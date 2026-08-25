@@ -33,7 +33,9 @@ export class InventoryRepository {
         skip,
         take: limit,
         include: {
-          product: true,
+          product: {
+            select: { id: true, name: true, slug: true },
+          },
           inventory: true,
         },
         orderBy: { createdAt: "desc" },
@@ -94,7 +96,7 @@ export class InventoryRepository {
    */
   async reserveInventory(variantId: string, locationId: string, quantityToReserve: number, tx: any) {
     // Lock row
-    await tx.$executeRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
 
     const inventory = await tx.inventory.findUnique({
       where: { variantId_locationId: { variantId, locationId } },
@@ -120,7 +122,7 @@ export class InventoryRepository {
    */
   async commitInventory(variantId: string, locationId: string, quantityToCommit: number, tx: any) {
     // Lock row
-    await tx.$executeRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
 
     return tx.inventory.update({
       where: { variantId_locationId: { variantId, locationId } },
@@ -136,7 +138,7 @@ export class InventoryRepository {
    */
   async releaseInventory(variantId: string, locationId: string, quantityToRelease: number, tx: any) {
     // Lock row
-    await tx.$executeRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
 
     const inventory = await tx.inventory.findUnique({
       where: { variantId_locationId: { variantId, locationId } },

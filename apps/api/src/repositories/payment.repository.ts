@@ -3,8 +3,9 @@ import { PrismaClient, Payment, Prisma, PaymentStatus, OrderStatus } from "@pris
 export class PaymentRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async create(data: Prisma.PaymentUncheckedCreateInput): Promise<Payment> {
-    return this.prisma.payment.create({
+  async create(data: Prisma.PaymentUncheckedCreateInput, tx?: any): Promise<Payment> {
+    const client = tx ?? this.prisma;
+    return client.payment.create({
       data,
     });
   }

@@ -9,18 +9,24 @@ export interface ProductControllerDeps {
 export function createProductController(deps: ProductControllerDeps) {
   return {
     getAll: async (req: Request, res: Response) => {
-      const includeInactive = req.query.includeInactive === "true";
+      const isAdminRoute = Boolean(req.originalUrl?.includes("/admin/") || req.baseUrl?.includes("/admin/"));
+      const includeInactive = req.query.includeInactive === "true" || isAdminRoute;
       const includeDeleted = req.query.includeDeleted === "true";
+      const onlyDeleted = req.query.onlyDeleted === "true" || req.query.status === "DELETED";
+      const statusParam = req.query.status as string | undefined;
       const includeInventory = req.query.includeInventory === "true" || includeInactive;
       const page = Math.max(1, Number.parseInt(req.query.page as string, 10) || 1);
       const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit as string, 10) || 20));
+      const categoryParam = (req.query.category ?? req.query.categoryId ?? req.query.categorySlug) as string | undefined;
       const result = await deps.productService.getProducts({
         includeInactive,
         includeDeleted,
+        onlyDeleted,
+        status: statusParam,
         page,
         limit,
         search: (req.query.search || req.query.q) as string | undefined,
-        categoryId: req.query.categoryId as string | undefined,
+        categoryId: categoryParam,
         brandId: req.query.brandId as string | undefined,
         brandSlug: (req.query.brand ?? req.query.brandSlug) as string | undefined,
         isFeatured: req.query.featured === "true" ? true : undefined,

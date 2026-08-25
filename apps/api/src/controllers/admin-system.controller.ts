@@ -8,6 +8,15 @@ export interface AdminSystemControllerDeps {
   redisService: RedisService;
 }
 
+const DASHBOARD_CACHE_TTL_MS = 30_000; // 30 seconds
+let cachedDashboardStats: any = null;
+let cachedDashboardStatsTime = 0;
+
+export function invalidateDashboardStatsCache() {
+  cachedDashboardStats = null;
+  cachedDashboardStatsTime = 0;
+}
+
 export function createAdminSystemController(deps: AdminSystemControllerDeps) {
   return {
     getStatus: async (req: Request, res: Response) => {
@@ -84,8 +93,17 @@ export function createAdminSystemController(deps: AdminSystemControllerDeps) {
       res.end();
     },
 
-    dashboardStats: async (req: Request, res: Response) => {
+    dashboardStats: async (_req: Request, res: Response) => {
       try {
+        // Fast-path: 30-second in-memory cache
+        const now = Date.now();
+        if (cachedDashboardStats && now - cachedDashboardStatsTime < DASHBOARD_CACHE_TTL_MS) {
+          return res.json({
+            success: true,
+            data: cachedDashboardStats,
+          });
+        }
+
         const customerWhere = {
           deletedAt: null,
           status: "ACTIVE" as const,
@@ -98,47 +116,57 @@ export function createAdminSystemController(deps: AdminSystemControllerDeps) {
           ],
         };
 
-        const [totalOrders, totalProducts, totalCustomers, totalRevenueData, recentOrders] = await Promise.all([
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const [totalOrders, totalProducts, totalCustomers, totalRevenueData, recentOrders, chartOrders] = await Promise.all([
           deps.prisma.order.count({ where: { status: { not: "CANCELLED" }, deletedAt: null } }),
           deps.prisma.product.count({ where: { deletedAt: null } }),
-          // Accurate Live Customers count:
           deps.prisma.user.count({ where: customerWhere }),
           deps.prisma.order.aggregate({
             _sum: { grandTotal: true },
-            where: { status: { not: "CANCELLED" }, deletedAt: null }
+            where: { status: { not: "CANCELLED" }, deletedAt: null },
           }),
           deps.prisma.order.findMany({
             take: 5,
             where: { deletedAt: null },
             orderBy: { createdAt: "desc" },
-            include: { user: { select: { firstName: true, lastName: true, email: true } } }
-          })
+            include: { user: { select: { firstName: true, lastName: true, email: true } } },
+          }),
+          deps.prisma.order.findMany({
+            where: {
+              status: { not: "CANCELLED" },
+              deletedAt: null,
+              createdAt: { gte: thirtyDaysAgo },
+            },
+            select: { createdAt: true, grandTotal: true },
+            orderBy: { createdAt: "asc" },
+          }),
         ]);
 
-        const allOrders = await deps.prisma.order.findMany({
-          where: { status: { not: "CANCELLED" }, deletedAt: null },
-          select: { createdAt: true, grandTotal: true }
-        });
-
         const revenueByDate: Record<string, number> = {};
-        allOrders.forEach((order) => {
-          const date = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        chartOrders.forEach((order) => {
+          const date = new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
           revenueByDate[date] = (revenueByDate[date] || 0) + Number(order.grandTotal);
         });
 
         const chartData = Object.entries(revenueByDate).map(([name, revenue]) => ({ name, revenue }));
-        chartData.sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+
+        const resultData = {
+          totalOrders,
+          totalProducts,
+          totalCustomers,
+          totalRevenue: Number(totalRevenueData._sum.grandTotal || 0),
+          chartData,
+          recentOrders,
+        };
+
+        cachedDashboardStats = resultData;
+        cachedDashboardStatsTime = now;
 
         res.json({
           success: true,
-          data: {
-            totalOrders,
-            totalProducts,
-            totalCustomers,
-            totalRevenue: Number(totalRevenueData._sum.grandTotal || 0),
-            chartData,
-            recentOrders
-          }
+          data: resultData,
         });
       } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);

@@ -24,8 +24,34 @@ export class OrderRepository {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          user: true,
-          items: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+          items: {
+            select: {
+              id: true,
+              customization: true,
+              productName: true,
+              variantName: true,
+              quantity: true,
+              unitPrice: true,
+              totalPrice: true,
+            },
+          },
+          payments: {
+            select: {
+              id: true,
+              status: true,
+              provider: true,
+              amount: true,
+            },
+          },
         },
       }),
       this.prisma.order.count({ where }),
@@ -40,6 +66,7 @@ export class OrderRepository {
       include: {
         items: true,
         user: true,
+        payments: true,
       },
     });
   }
@@ -50,6 +77,7 @@ export class OrderRepository {
       orderBy: { createdAt: "desc" },
       include: {
         items: true,
+        payments: true,
       },
     });
   }

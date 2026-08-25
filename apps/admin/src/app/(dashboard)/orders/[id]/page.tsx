@@ -2,7 +2,7 @@
 
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useToast } from "@dashboard/ui";
 import { format } from "date-fns";
-import { ArrowLeft, MapPin, Package, CreditCard, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Package, CreditCard, Clock, Copy } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -276,9 +276,39 @@ export default function OrderDetailsPage() {
               <div>
                 <div className="text-xs text-text-secondary mb-1">Method</div>
                 <div className="text-sm font-medium text-text-primary">
-                  {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"}
+                  {order.paymentMethod === "UPI" ? "UPI Payment" : order.paymentMethod === "COD" ? "Cash on Delivery" : order.paymentMethod}
                 </div>
               </div>
+              {order.paymentMethod === "UPI" && (() => {
+                const upiTxId = order.payments?.find((p: any) => p.provider === "UPI" && p.providerPaymentId)?.providerPaymentId
+                  || order.payments?.find((p: any) => p.provider === "UPI" && p.rawPayload?.upiTransactionId)?.rawPayload?.upiTransactionId
+                  || order.payments?.[0]?.providerPaymentId
+                  || null;
+
+                return (
+                  <div>
+                    <div className="text-xs text-text-secondary mb-1">Transaction ID</div>
+                    {upiTxId ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-semibold text-text-primary">{upiTxId}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(upiTxId);
+                            addToast({ title: "Transaction ID Copied! 📋", type: "success" });
+                          }}
+                          className="text-text-secondary hover:text-accent p-1 transition-colors"
+                          title="Copy Transaction ID"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-text-secondary italic">Not provided</span>
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <label className="mb-1.5 block text-xs text-text-secondary">Payment Status</label>
                 <select

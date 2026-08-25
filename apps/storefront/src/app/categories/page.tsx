@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { useCategories } from "@/api/products";
+import { getImageUrl } from "@/lib/image-utils";
 
 export default function CategoriesPage() {
-  const { data, isLoading } = useCategories();
+  const { data, isLoading, isError, refetch } = useCategories();
 
   return (
     <div className="bg-background min-h-[70vh]">
@@ -15,7 +16,18 @@ export default function CategoriesPage() {
           <h1 className="text-4xl font-serif text-text-primary">Categories</h1>
         </div>
         
-        {isLoading ? (
+        {isError ? (
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+            <p className="text-base font-medium text-text-primary mb-2">Unable to load categories</p>
+            <p className="text-sm text-text-secondary mb-6 font-light">Something went wrong while connecting to the store. Please try again.</p>
+            <button
+              onClick={() => refetch()}
+              className="px-6 py-2.5 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4">
             {[1,2,3,4,5,6,7,8].map(i => (
               <div key={i} className="flex flex-col items-center">
@@ -42,7 +54,7 @@ export default function CategoriesPage() {
                   <div className="w-full max-w-[240px] aspect-square rounded-full overflow-hidden bg-muted shadow-sm group-hover:shadow-lg transition-all duration-500 mb-6 relative flex items-center justify-center">
                     {c.imageUrl ? (
                       <img 
-                        src={encodeURI(c.imageUrl)} 
+                        src={getImageUrl(c.imageUrl)} 
                         alt={c.name} 
                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out" 
                       />

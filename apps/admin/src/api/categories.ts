@@ -4,14 +4,14 @@ import { apiClient } from "../lib/api-client";
 import { useAuthStore } from "../store/useAuthStore";
 
 export const useAdminCategories = () => {
-  const { token } = useAuthStore();
+  const { token, _hasHydrated } = useAuthStore();
 
   return useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {
       return apiClient<{ data: { categories: any[] } }>("/admin/categories");
     },
-    enabled: !!token,
+    enabled: Boolean((_hasHydrated ?? true) && token),
     staleTime: 60 * 1000,
   });
 };

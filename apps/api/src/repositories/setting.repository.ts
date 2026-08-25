@@ -20,21 +20,15 @@ export class SettingRepository {
   }
 
   async upsert(key: string, value: any, updatedByUserId?: string, scope: string = "global") {
-    const existing = await this.prisma.setting.findFirst({ where: { key } });
-    if (existing) {
-      return this.prisma.setting.update({
-        where: { id: existing.id },
-        data: {
-          value: value as any,
-          updatedByUserId,
-          scope,
-        },
-      });
-    }
-
-    return this.prisma.setting.create({
-      data: {
+    return this.prisma.setting.upsert({
+      where: { key },
+      create: {
         key,
+        value: value as any,
+        updatedByUserId,
+        scope,
+      },
+      update: {
         value: value as any,
         updatedByUserId,
         scope,

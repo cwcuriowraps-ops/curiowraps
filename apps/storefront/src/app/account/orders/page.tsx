@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { useOrders } from "@/api/orders";
 import { useMyReviews, useSubmitReview } from "@/api/reviews";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 export default function OrdersPage() {
   const { data, isLoading } = useOrders();
@@ -56,6 +57,15 @@ export default function OrdersPage() {
         default:           return { label: paymentStatus,         color: "text-text-secondary" };
       }
     }
+    if (paymentMethod === "UPI") {
+      switch (paymentStatus) {
+        case "PENDING":    return { label: "Awaiting Confirmation", color: "text-yellow-600 dark:text-yellow-400" };
+        case "PAID":       return { label: "Payment Verified",      color: "text-green-600 dark:text-green-400" };
+        case "FAILED":     return { label: "Payment Failed",        color: "text-red-600 dark:text-red-400" };
+        case "CANCELLED":  return { label: "Cancelled",             color: "text-red-500 dark:text-red-400" };
+        default:           return { label: paymentStatus,            color: "text-text-secondary" };
+      }
+    }
     switch (paymentStatus) {
       case "PENDING":            return { label: "Awaiting Payment",  color: "text-yellow-600 dark:text-yellow-400" };
       case "AUTHORIZED":         return { label: "Authorised",         color: "text-blue-600 dark:text-blue-400" };
@@ -69,7 +79,7 @@ export default function OrdersPage() {
   };
 
   const handleOpenReviewModal = (productId: string, productName: string) => {
-    const existing = myReviews.find((r) => r.productId === productId);
+    const existing = myReviews.find((r: any) => r.productId === productId);
     setReviewTarget({ productId, productName, existingReview: existing });
     if (existing) {
       setRatingInput(existing.rating || 5);
@@ -107,18 +117,18 @@ export default function OrdersPage() {
         images: imagesList,
       },
       {
-        onSuccess: (res) => {
+        onSuccess: () => {
           addToast({
             title: "Review Submitted! ✨",
-            description: res.message,
+            description: "Thank you for your feedback! It will appear after approval.",
             type: "success",
           });
           setReviewTarget(null);
         },
         onError: (err: any) => {
           addToast({
-            title: "Error submitting review",
-            description: err.message || "Failed to submit review.",
+            title: "Could not submit review",
+            description: sanitizeErrorMessage(err, "Failed to submit review. Please try again."),
             type: "error",
           });
         },
@@ -221,7 +231,7 @@ export default function OrdersPage() {
                       <div className="divide-y divide-border">
                         {items.map((item: any) => {
                           const itemProductId = item.productId || item.product?.id;
-                          const existingReview = myReviews.find((r) => r.productId === itemProductId);
+                          const existingReview = myReviews.find((r: any) => r.productId === itemProductId);
 
                           return (
                             <div
@@ -316,9 +326,21 @@ export default function OrdersPage() {
                         <p className="text-text-primary">
                           Method:{" "}
                           <span className="font-medium">
-                            {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"}
+                            {order.paymentMethod === "UPI" ? "UPI Payment" : order.paymentMethod === "COD" ? "Cash on Delivery" : order.paymentMethod}
                           </span>
                         </p>
+                        {order.paymentMethod === "UPI" && (() => {
+                          const upiTxId = order.payments?.find((p: any) => p.provider === "UPI" && p.providerPaymentId)?.providerPaymentId
+                            || order.payments?.find((p: any) => p.provider === "UPI" && p.rawPayload?.upiTransactionId)?.rawPayload?.upiTransactionId
+                            || order.payments?.[0]?.providerPaymentId
+                            || null;
+                          if (!upiTxId) return null;
+                          return (
+                            <p className="text-text-primary">
+                              Transaction ID: <span className="font-mono font-medium">{upiTxId}</span>
+                            </p>
+                          );
+                        })()}
                         <p className="text-text-primary">
                           Status:{" "}
                           {(() => {

@@ -57,6 +57,22 @@ function toPublicUser(user: any): PublicUser {
   };
 }
 
+interface CachedUserSession {
+  user: PublicUser;
+  expiresAt: number;
+}
+
+const userSessionCache = new Map<string, CachedUserSession>();
+const USER_SESSION_TTL_MS = 60_000; // 60s fast-path cache
+
+export function invalidateUserSessionCache(userId?: string) {
+  if (userId) {
+    userSessionCache.delete(userId);
+  } else {
+    userSessionCache.clear();
+  }
+}
+
 export class AuthService {
   private readonly userRepository: UserRepository;
   private readonly roleRepository: RoleRepository;
@@ -148,71 +164,71 @@ export class AuthService {
 
     let user = await this.userRepository.findByEmail(email);
 
-    const result = await this.deps.prisma.$transaction(
-      async (transaction: any) => {
-        const roleRepository = new RoleRepository(transaction);
-        const userRepository = new UserRepository(transaction);
+    if (!user) {
+      const customerRole = await this.roleRepository.ensureCustomerRole();
+      user = await this.userRepository.create({
+        email,
+        firstName: firstName || "User",
+        lastName: lastName || "",
+        avatarUrl,
+        provider,
+        providerId,
+        emailVerifiedAt: new Date(),
+        lastLoginAt: new Date(),
+        role: { connect: { id: customerRole.id } },
+      });
 
-        if (!user) {
-          const customerRole = await roleRepository.ensureCustomerRole();
-          user = await userRepository.create({
-            email,
-            firstName: firstName || "User",
-            lastName: lastName || "",
-            avatarUrl,
-            provider,
-            providerId,
-            role: { connect: { id: customerRole.id } },
-          });
+      const tokens = this.buildTokens(user.id, user.email, user.role.name);
+      await this.storeRefreshToken(this.deps.prisma, user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt, context);
+      return { user: toPublicUser(user), tokens };
+    }
 
-          // Also update emailVerifiedAt
-          await transaction.user.update({
-            where: { id: user.id },
-            data: { emailVerifiedAt: new Date() },
-          });
-        } else {
-          // Link account if not linked
-          if (!user.provider || user.provider === "LOCAL") {
-            await transaction.user.update({
-              where: { id: user.id },
-              data: { provider, providerId, emailVerifiedAt: user.emailVerifiedAt || new Date() },
-            });
-          }
-        }
+    if (user.deletedAt || user.status !== "ACTIVE") {
+      throw new AppError(401, "ACCOUNT_DISABLED", "Your account has been disabled");
+    }
 
-        if (user.deletedAt || user.status !== "ACTIVE") {
-          throw new AppError(401, "ACCOUNT_DISABLED", "Your account has been disabled");
-        }
+    const updateData: any = { lastLoginAt: new Date() };
+    if (!user.provider || user.provider === "LOCAL") {
+      updateData.provider = provider;
+      updateData.providerId = providerId;
+      if (!user.emailVerifiedAt) {
+        updateData.emailVerifiedAt = new Date();
+      }
+    }
 
-        const tokens = this.buildTokens(user.id, user.email, user.role.name);
-        await this.storeRefreshToken(transaction, user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt, context);
-        await userRepository.updateLastLoginAt(user.id, new Date());
+    const tokens = this.buildTokens(user.id, user.email, user.role.name);
 
-        return { user: toPublicUser(user), tokens };
-      },
-      { maxWait: 15000, timeout: 20000 }
-    );
+    await Promise.all([
+      this.storeRefreshToken(this.deps.prisma, user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt, context),
+      this.deps.prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+        select: { id: true },
+      }),
+    ]);
 
-    return result;
+    return { user: toPublicUser(user), tokens };
   }
 
   async login(input: LoginInput, context: TokenContext = {}) {
     const normalizedEmail = input.email.toLowerCase().trim();
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
-    if (!user || user.deletedAt || user.status !== "ACTIVE") {
-      throw new AppError(404, "ACCOUNT_NOT_FOUND", "No account found with this email.");
-    }
+    const passwordMatches = user
+      ? await verifyPassword(input.password, user.passwordHash)
+      : await verifyPassword(input.password, "$2b$12$e868d447472094c92928822002938491028340918239012389012");
 
-    const passwordMatches = await verifyPassword(input.password, user.passwordHash);
-
-    if (!passwordMatches) {
-      throw new AppError(401, "INCORRECT_PASSWORD", "Incorrect password. Please try again.");
+    if (!user || user.deletedAt || user.status !== "ACTIVE" || !passwordMatches) {
+      throw new AppError(401, "INVALID_CREDENTIALS", "Invalid email or password.");
     }
 
     const tokens = this.buildTokens(user.id, user.email, user.role.name);
     await this.storeRefreshToken(this.deps.prisma, user.id, tokens.refreshToken, tokens.refreshTokenExpiresAt, context);
-    await this.userRepository.updateLastLoginAt(user.id, new Date());
+
+    // Non-blocking background update for lastLoginAt
+    void this.userRepository.updateLastLoginAt(user.id, new Date()).catch((err: any) => {
+      this.deps.logger.warn({ err, userId: user.id }, "Failed to update lastLoginAt asynchronously");
+    });
 
     return { user: toPublicUser(user), tokens };
   }
@@ -276,6 +292,10 @@ export class AuthService {
 
   async logout(refreshToken: string) {
     const tokenHash = hashToken(refreshToken, this.deps.config.jwtRefreshSecret);
+    const existing = await this.refreshTokenRepository.findByTokenHash(tokenHash);
+    if (existing?.userId) {
+      invalidateUserSessionCache(existing.userId);
+    }
     await this.refreshTokenRepository.revokeByHash(tokenHash, new Date());
   }
 
@@ -432,13 +452,26 @@ export class AuthService {
 
   async getCurrentUser(accessToken: string) {
     const payload = this.verifyAccessToken(accessToken);
+    const now = Date.now();
+    const cached = userSessionCache.get(payload.userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.user;
+    }
+
     const user = await this.userRepository.findById(payload.userId);
 
     if (!user || user.deletedAt || user.status !== "ACTIVE") {
+      userSessionCache.delete(payload.userId);
       throw new AppError(401, "INVALID_TOKEN", "The access token is invalid or expired");
     }
 
-    return toPublicUser(user);
+    const publicUser = toPublicUser(user);
+    userSessionCache.set(payload.userId, {
+      user: publicUser,
+      expiresAt: now + USER_SESSION_TTL_MS,
+    });
+
+    return publicUser;
   }
 
   private verifyRefreshToken(refreshToken: string) {

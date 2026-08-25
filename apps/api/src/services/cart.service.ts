@@ -109,15 +109,33 @@ export class CartService {
     return this.getCart(cart.sessionId ?? sessionId, cart.userId ?? userId);
   }
 
+  private settingsCache: {
+    data: Record<string, any>;
+    expiresAt: number;
+  } | null = null;
+
+  public invalidateSettingsCache(): void {
+    this.settingsCache = null;
+  }
+
+  async clearCartDirect(sessionId?: string, userId?: string) {
+    if (userId) {
+      return this.cartRepository.clearByUserId(userId);
+    } else if (sessionId) {
+      return this.cartRepository.clearBySessionId(sessionId);
+    }
+  }
+
   async clearCart(sessionId?: string, userId?: string) {
-    const cart = await this.getCart(sessionId, userId);
-    if (cart) {
-      await this.cartRepository.clearItems(cart.id);
+    if (userId) {
+      await this.cartRepository.clearByUserId(userId);
+    } else if (sessionId) {
+      await this.cartRepository.clearBySessionId(sessionId);
     }
     return this.getCart(sessionId, userId);
   }
 
-  private async calculateTotals(cart: any) {
+  public async calculateTotals(cart: any) {
     if (!cart) return null;
 
     let subtotal = 0;
@@ -145,11 +163,22 @@ export class CartService {
 
     if (this.settingRepository) {
       try {
-        const settingsList = await this.settingRepository.findByKeys(["shipping", "taxes"]);
-        const settingsMap = (settingsList || []).reduce((acc, s) => {
-          acc[s.key] = s.value;
-          return acc;
-        }, {} as Record<string, any>);
+        let settingsMap: Record<string, any>;
+        const now = Date.now();
+
+        if (this.settingsCache && now < this.settingsCache.expiresAt) {
+          settingsMap = this.settingsCache.data;
+        } else {
+          const settingsList = await this.settingRepository.findByKeys(["shipping", "taxes"]);
+          settingsMap = (settingsList || []).reduce((acc, s) => {
+            acc[s.key] = s.value;
+            return acc;
+          }, {} as Record<string, any>);
+          this.settingsCache = {
+            data: settingsMap,
+            expiresAt: now + 5 * 60 * 1000, // 5 minute TTL
+          };
+        }
 
         if (settingsMap.shipping && typeof settingsMap.shipping === "object") {
           const s = settingsMap.shipping;

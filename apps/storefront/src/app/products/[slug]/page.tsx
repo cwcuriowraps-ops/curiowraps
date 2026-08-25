@@ -12,7 +12,10 @@ import { useAddToCart, useCart } from "@/api/cart";
 import { useProduct } from "@/api/products";
 import { useProductReviews, useReviewEligibility, useSubmitReview } from "@/api/reviews";
 import { useAddToWishlist, useWishlist } from "@/api/wishlist";
+import { getImageUrl } from "@/lib/image-utils";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useBuyNowStore } from "@/store/useBuyNowStore";
 import { useCartUIStore } from "@/store/useCartUIStore";
 
 export default function ProductDetailsPage() {
@@ -43,12 +46,13 @@ export default function ProductDetailsPage() {
   const router = useRouter();
   const { data: cartData } = useCart();
   const { openCart, closeCart, setNewlyAddedVariantId } = useCartUIStore();
+  const setBuyNowItem = useBuyNowStore((state) => state.setItem);
 
   const product = data?.product;
   const productId = product?.id;
 
   // Reviews Data
-  const { data: reviewsData, isLoading: isReviewsLoading } = useProductReviews(productId);
+  const { data: reviewsData, isLoading: isReviewsLoading, isError: isReviewsError, refetch: refetchReviews } = useProductReviews(productId);
   const { data: eligibilityData } = useReviewEligibility(productId, !!user);
   const submitReview = useSubmitReview();
 
@@ -92,7 +96,7 @@ export default function ProductDetailsPage() {
   }
 
   const images = product.images?.length > 0
-    ? product.images.map((img: any) => encodeURI(img.url))
+    ? product.images.map((img: any) => getImageUrl(typeof img === "string" ? img : img?.url))
     : [];
 
   const variants = product.variants || [];
@@ -103,8 +107,8 @@ export default function ProductDetailsPage() {
     if (!activeVariant) {
       addToast({
         title: "No variant available",
-        description: "This product has no available variants.",
-        type: "error",
+        description: "Please select an available product option to continue.",
+        type: "warning",
       });
       return;
     }
@@ -123,9 +127,7 @@ export default function ProductDetailsPage() {
           }, 2500);
 
           addToast({
-            title: isItemInCart
-              ? "✅ Quantity updated in your cart."
-              : `✅ '${product.name}' has been added to your cart.`,
+            title: isItemInCart ? "Cart updated" : "Added to cart",
             type: "success",
             action: {
               label: "View Cart",
@@ -136,7 +138,7 @@ export default function ProductDetailsPage() {
         onError: (error: any) => {
           addToast({
             title: "Failed to add to cart",
-            description: error.message || "Something went wrong.",
+            description: sanitizeErrorMessage(error, "Could not add item to cart. Please try again."),
             type: "error",
           });
         },
@@ -150,8 +152,8 @@ export default function ProductDetailsPage() {
     if (!activeVariant) {
       addToast({
         title: "No variant available",
-        description: "This product has no available variants.",
-        type: "error",
+        description: "Please select an available product option to continue.",
+        type: "warning",
       });
       return;
     }
@@ -162,22 +164,31 @@ export default function ProductDetailsPage() {
         description: "Please sign in or create an account to proceed to checkout.",
         type: "info",
       });
-      router.push(`/auth/login?redirect=/checkout`);
+      router.push(`/auth/login?redirect=/checkout?buyNow=true`);
       return;
     }
 
     setIsBuyingNow(true);
     try {
-      await addToCart.mutateAsync({
+      setBuyNowItem({
         variantId: activeVariant.id,
         quantity,
         customization: customization.trim() || undefined,
+        productSnapshot: {
+          name: product.name,
+          slug: product.slug,
+          image: images[0],
+        },
+        variantSnapshot: {
+          title: activeVariant.title || activeVariant.name,
+          price: activeVariant.price || product.basePrice,
+        }
       });
-      router.push("/checkout");
+      router.push("/checkout?buyNow=true");
     } catch (error: any) {
       addToast({
         title: "Unable to start checkout",
-        description: error.message || "Please try again.",
+        description: sanitizeErrorMessage(error, "Could not start checkout. Please try again."),
         type: "error",
       });
     } finally {
@@ -191,8 +202,8 @@ export default function ProductDetailsPage() {
     if (!user) {
       addToast({
         title: "Sign in required",
-        description: "Please sign in to add items to your wishlist.",
-        type: "error",
+        description: "Please sign in to save items to your wishlist.",
+        type: "info",
       });
       return;
     }
@@ -217,7 +228,7 @@ export default function ProductDetailsPage() {
         onError: (error: any) => {
           addToast({
             title: "Failed to add to wishlist",
-            description: error.message || "Something went wrong.",
+            description: sanitizeErrorMessage(error, "Could not add item to wishlist. Please try again."),
             type: "error",
           });
         },
@@ -248,10 +259,10 @@ export default function ProductDetailsPage() {
         images: imagesList,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: () => {
           addToast({
             title: "Review Submitted! ✨",
-            description: data.message,
+            description: "Thank you for your feedback! It will appear after approval.",
             type: "success",
           });
           setIsReviewModalOpen(false);
@@ -259,7 +270,7 @@ export default function ProductDetailsPage() {
         onError: (err: any) => {
           addToast({
             title: "Could not submit review",
-            description: err.message || "Something went wrong.",
+            description: sanitizeErrorMessage(err, "Failed to submit review. Please try again."),
             type: "error",
           });
         },
@@ -427,18 +438,20 @@ export default function ProductDetailsPage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full sm:w-fit shadow-sm hover:shadow-md transition-all"
+                className="w-full sm:w-fit shadow-sm hover:shadow-md transition-all min-w-[160px]"
                 onClick={handleAddToCart}
                 loading={addToCart.isPending}
-                disabled={addToCart.isPending || !selectedVariant}
+                loadingText="Adding to cart…"
+                disabled={addToCart.isPending || isBuyingNow || !selectedVariant}
               >
                 Add to Cart
               </Button>
               <Button
                 size="lg"
-                className="w-full sm:w-fit shadow-md hover:shadow-lg transition-all"
+                className="w-full sm:w-fit shadow-md hover:shadow-lg transition-all min-w-[160px]"
                 onClick={handleBuyNow}
                 loading={isBuyingNow}
+                loadingText="Buying now…"
                 disabled={isBuyingNow || addToCart.isPending || (!selectedVariant && variants.length === 0)}
               >
                 Buy Now
@@ -535,6 +548,15 @@ export default function ProductDetailsPage() {
                 <div key={i} className="h-32 bg-muted animate-pulse rounded-2xl" />
               ))}
             </div>
+          ) : isReviewsError ? (
+            <div className="text-center py-12 bg-surface rounded-2xl border border-dashed border-rose-200 dark:border-rose-900/50 p-8 space-y-3">
+              <MessageSquare className="h-8 w-8 text-rose-500/60 mx-auto" />
+              <h3 className="font-serif text-lg text-text-primary">Unable to load reviews</h3>
+              <p className="text-sm text-text-secondary font-light">There was a problem retrieving customer reviews.</p>
+              <Button variant="outline" size="sm" onClick={() => refetchReviews()} className="rounded-full mt-2">
+                Retry
+              </Button>
+            </div>
           ) : reviewsList.length === 0 ? (
             <div className="text-center py-12 bg-surface rounded-2xl border border-dashed border-border p-8">
               <MessageSquare className="h-8 w-8 text-text-secondary/40 mx-auto mb-3" />
@@ -543,7 +565,7 @@ export default function ProductDetailsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {reviewsList.map((rev) => (
+              {reviewsList.map((rev: any) => (
                 <div key={rev.id} className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
@@ -586,7 +608,7 @@ export default function ProductDetailsPage() {
 
                   {rev.images && rev.images.length > 0 && (
                     <div className="flex gap-3 overflow-x-auto pt-2">
-                      {rev.images.map((imgUrl, imgIdx) => (
+                      {rev.images.map((imgUrl: string, imgIdx: number) => (
                         <a key={imgIdx} href={imgUrl} target="_blank" rel="noreferrer" className="shrink-0 relative h-20 w-20 block">
                           <Image
                             src={imgUrl}
@@ -825,8 +847,7 @@ export default function ProductDetailsPage() {
               src={images[selectedImage]}
               alt={product.name}
               fill
-              unoptimized
-              sizes="100vw"
+              sizes="(max-width: 1280px) 100vw, 1200px"
               className="object-contain p-2 select-none"
             />
           </div>

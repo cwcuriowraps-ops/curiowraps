@@ -52,10 +52,12 @@ export const useProductReviews = (productId: string | undefined) => {
     queryKey: ["reviews", "product", productId],
     queryFn: async () => {
       if (!productId) return { reviews: [], stats: { averageRating: 0, reviewCount: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } } };
-      const res = await apiClient<{ reviews: ReviewItem[]; stats: ReviewStats }>(`/reviews?productId=${productId}`);
-      return res;
+      const res = await apiClient<any>(`/reviews?productId=${productId}`);
+      return res?.data || res;
     },
     enabled: !!productId,
+    staleTime: 3 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 
@@ -64,11 +66,13 @@ export const useReviewEligibility = (productId: string | undefined, enabled = tr
     queryKey: ["reviews", "eligibility", productId],
     queryFn: async () => {
       if (!productId) return null;
-      const res = await apiClient<EligibilityResponse>(`/reviews/eligibility?productId=${productId}`);
-      return res;
+      const res = await apiClient<any>(`/reviews/eligibility?productId=${productId}`);
+      return res?.data || res;
     },
     enabled: enabled && !!productId,
-    retry: false,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
   });
 };
 
@@ -76,8 +80,8 @@ export const useMyReviews = () => {
   return useQuery({
     queryKey: ["reviews", "my-reviews"],
     queryFn: async () => {
-      const res = await apiClient<{ reviews: ReviewItem[] }>("/reviews/my-reviews");
-      return res;
+      const res = await apiClient<any>("/reviews/my-reviews");
+      return res?.data || res;
     },
   });
 };
@@ -87,11 +91,11 @@ export const useSubmitReview = () => {
 
   return useMutation({
     mutationFn: async (payload: SubmitReviewPayload) => {
-      const res = await apiClient<{ review: ReviewItem; message: string }>("/reviews", {
+      const res = await apiClient<any>("/reviews", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      return res;
+      return res?.data || res;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["reviews", "product", variables.productId] });

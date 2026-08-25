@@ -49,7 +49,8 @@ export const useContactMessages = (params: ContactFilterParams = {}) => {
       return response.data;
     },
     enabled: !!token,
-    refetchInterval: 30000, // Background refresh every 30s
+    staleTime: 60000,
+    refetchInterval: 120000, // Background refresh every 2m
   });
 };
 
@@ -64,7 +65,8 @@ export const useUnreadContactMessagesCount = () => {
       return response.data.unreadCount;
     },
     enabled: !!token,
-    refetchInterval: 30000,
+    staleTime: 60000,
+    refetchInterval: 120000, // Background refresh every 2m
   });
 };
 
@@ -74,7 +76,7 @@ export const useUpdateContactMessageStatus = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: ContactStatus }) => {
+    mutationFn: async ({ id, status, silent }: { id: string; status: ContactStatus; silent?: boolean }) => {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await apiClient<{ data: { message: ContactMessage; unreadCount: number }; message: string }>(
         `/admin/contact-messages/${id}/status`,
@@ -84,17 +86,19 @@ export const useUpdateContactMessageStatus = () => {
           body: JSON.stringify({ status }),
         }
       );
-      return response;
+      return { response, silent };
     },
     onSuccess: (res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contact-messages"] });
       queryClient.invalidateQueries({ queryKey: ["contact-messages-unread-count"] });
 
-      addToast({
-        title: "Status Updated",
-        description: `Message marked as ${variables.status.toLowerCase()}.`,
-        type: "success",
-      });
+      if (!variables.silent) {
+        addToast({
+          title: "Status Updated",
+          description: `Message marked as ${variables.status.toLowerCase()}.`,
+          type: "success",
+        });
+      }
     },
     onError: (error: any) => {
       addToast({

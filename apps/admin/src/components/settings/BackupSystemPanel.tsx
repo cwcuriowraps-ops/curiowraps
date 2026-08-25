@@ -23,9 +23,31 @@ export function BackupSystemPanel() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const handleExport = (type: string) => {
-    addToast({ title: "Export Started", description: `Downloading ${type} CSV backup...`, type: "info" });
-    window.location.href = `${API_URL}/admin/system/export?type=${type}`;
+  const handleExport = async (type: string) => {
+    try {
+      addToast({ title: "Download Started", description: `Downloading ${type} CSV backup...`, type: "info" });
+      const response = await fetch(`${API_URL}/admin/system/export?type=${type}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        throw new Error("Export request failed");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}-backup.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      addToast({
+        title: "Export Failed",
+        description: "Export failed. Please try again.",
+        type: "error",
+      });
+    }
   };
 
   return (

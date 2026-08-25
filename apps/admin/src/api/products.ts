@@ -4,45 +4,40 @@ import { apiClient } from "../lib/api-client";
 import { useAuthStore } from "../store/useAuthStore";
 
 export const useAdminProducts = (params: Record<string, any>) => {
-  const { token } = useAuthStore();
+  const { token, _hasHydrated } = useAuthStore();
 
   return useQuery({
     queryKey: ["admin-products", params],
     queryFn: async () => {
-      return apiClient<{ data: { products: any[] }; meta?: any }>("/admin/products", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      return apiClient<{ data: { products: any[]; total: number }; meta?: any }>("/admin/products", {
         params,
       });
     },
-    enabled: !!token,
+    enabled: Boolean((_hasHydrated ?? true) && token),
     staleTime: 30 * 1000,
   });
 };
 
 export const useAdminProduct = (id: string) => {
-  const { token } = useAuthStore();
+  const { token, _hasHydrated } = useAuthStore();
 
   return useQuery({
     queryKey: ["admin-products", id],
     queryFn: async () => {
-      return apiClient<{ data: { product: any } }>(`/admin/products/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      return apiClient<{ data: { product: any } }>(`/admin/products/${id}`);
     },
-    enabled: !!token && !!id,
+    enabled: Boolean((_hasHydrated ?? true) && token && id),
     staleTime: 60 * 1000,
   });
 };
 
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: (data: any) =>
       apiClient("/admin/products", {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
@@ -57,13 +52,11 @@ export const useCreateProduct = () => {
 
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       apiClient(`/admin/products/${id}`, {
         method: "PATCH",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
       }),
     onSuccess: (_, { id }) => {
@@ -75,13 +68,11 @@ export const useUpdateProduct = () => {
 
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: (id: string) =>
       apiClient(`/admin/products/${id}`, {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
@@ -91,13 +82,11 @@ export const useDeleteProduct = () => {
 
 export const useRestoreProduct = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: (id: string) =>
       apiClient(`/admin/products/${id}/restore`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });

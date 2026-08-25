@@ -80,7 +80,7 @@ export function TaxesForm({ defaultValues }: { defaultValues: any }) {
 
           <div className="pt-4 border-t border-border flex justify-end">
             <Button type="submit" width="action" loading={isPending} disabled={isPending}>
-              Save Changes
+              {isPending ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </CardContent>

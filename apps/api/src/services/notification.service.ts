@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 export interface IEmailProvider {
   sendEmail(to: string, subject: string, body: string): Promise<void>;
@@ -55,8 +56,12 @@ export class BrevoEmailProvider implements IEmailProvider {
       host,
       port,
       secure: port === 465,
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
+      idleTimeout: 30000,
       auth: user && pass ? { user, pass } : undefined,
-    });
+    } as SMTPTransport.Options);
   }
 
   updateSenderDetails(senderName: string, senderEmail: string, replyToEmail?: string) {
@@ -88,20 +93,6 @@ export class BrevoEmailProvider implements IEmailProvider {
       subject,
       timestamp: new Date().toISOString(),
     });
-
-    // 1. SMTP Connection Verification
-    try {
-      console.info("[BrevoEmailProvider][SMTP:VerifyingConnection] Invoking transporter.verify()...");
-      await this.transporter.verify();
-      console.info("[BrevoEmailProvider][SMTP:VerifySuccess] SMTP connection & credentials authenticated cleanly.");
-    } catch (verifyErr: any) {
-      console.error("[BrevoEmailProvider][SMTP:VerifyError] Connection/Auth verification failed:", {
-        message: verifyErr?.message,
-        code: verifyErr?.code,
-        response: verifyErr?.response,
-        stack: verifyErr?.stack,
-      });
-    }
 
     // 2. Prepare & Log Complete sendMail Payload
     const mailOptions: any = {

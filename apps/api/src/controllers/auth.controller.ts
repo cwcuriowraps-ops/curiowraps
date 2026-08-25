@@ -107,7 +107,7 @@ export function createAuthController(deps: AuthControllerDeps) {
         }
 
         await deps.authService.forgotPassword(email);
-        res.status(200).json({ success: true, data: { message: "Password reset link sent successfully. Please check your inbox." } });
+        res.status(200).json({ success: true, data: { message: "If an account exists with this email, you'll receive a password reset link." } });
         console.info("[ForgotPassword][Controller] Success", { status: 200, email });
       } catch (error: any) {
         console.error("[ForgotPassword][Controller] Exception", {

@@ -8,12 +8,14 @@ import { useState } from "react";
 
 import { useAdminCustomers, useDeleteCustomer } from "@/api/customers";
 import { useUpdateUserStatus } from "@/api/users";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useAdminCustomers({ page, limit: 15, search });
+  const debouncedSearch = useDebounce(search.trim(), 300);
+  const { data, isLoading, isError, error, refetch } = useAdminCustomers({ page, limit: 15, search: debouncedSearch || undefined });
   const { mutateAsync: deleteCustomer, isPending: isDeleting } = useDeleteCustomer();
   const { mutateAsync: updateStatus, isPending: isUpdatingStatus } = useUpdateUserStatus();
   const { addToast } = useToast();
@@ -137,6 +139,18 @@ export default function CustomersPage() {
                     <td className="px-6 py-4"><Skeleton className="h-8 w-16 ml-auto" /></td>
                   </tr>
                 ))
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <p className="text-sm font-semibold text-red-500">Failed to load customers</p>
+                    <p className="mt-1 text-xs text-text-secondary font-light">
+                      {(error as any)?.message || "Something went wrong while connecting to the server."}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                      Retry
+                    </Button>
+                  </td>
+                </tr>
               ) : data?.data?.items?.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-text-secondary">No customers found</td>
@@ -234,6 +248,35 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {data?.meta && data.meta.pages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+            <span className="text-sm text-text-secondary">
+              Showing <span className="font-medium text-text-primary">{(page - 1) * 15 + 1}</span> to{" "}
+              <span className="font-medium text-text-primary">{Math.min(page * 15, data.meta.total)}</span> of{" "}
+              <span className="font-medium text-text-primary">{data.meta.total}</span> customers
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= data.meta.pages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Customer Confirmation Modal */}

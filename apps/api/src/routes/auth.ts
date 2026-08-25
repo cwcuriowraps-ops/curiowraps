@@ -19,10 +19,11 @@ export function createAuthRouter(deps: AuthRouterDeps) {
   const requireAuth = createRequireAuth({ authService: deps.authService, config: deps.config });
   const authRateLimiter = createAuthRateLimiter(deps.redisService);
 
-  router.post("/register", validateRequest({ body: registerSchema }), asyncHandler(controller.register));
-  router.post("/login", validateRequest({ body: loginSchema }), asyncHandler(controller.login));
+  router.post("/register", authRateLimiter, validateRequest({ body: registerSchema }), asyncHandler(controller.register));
+  router.post("/login", authRateLimiter, validateRequest({ body: loginSchema }), asyncHandler(controller.login));
   router.post(
     "/refresh",
+    authRateLimiter,
     validateRequest({ body: refreshSchema, cookies: authCookieSchema }),
     asyncHandler(controller.refresh),
   );
@@ -33,7 +34,7 @@ export function createAuthRouter(deps: AuthRouterDeps) {
   );
   router.get("/me", requireAuth, asyncHandler(controller.me));
   
-  router.post("/oauth", asyncHandler(controller.oauthLogin));
+  router.post("/oauth", authRateLimiter, asyncHandler(controller.oauthLogin));
   router.post("/forgot-password", authRateLimiter, validateRequest({ body: forgotPasswordSchema }), asyncHandler(controller.forgotPassword));
   router.post("/reset-password", authRateLimiter, validateRequest({ body: resetPasswordSchema }), asyncHandler(controller.resetPassword));
 

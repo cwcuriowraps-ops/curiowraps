@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { useCollections } from "@/api/products";
+import { getImageUrl } from "@/lib/image-utils";
 
 export default function CollectionsPage() {
-  const { data, isLoading } = useCollections();
+  const { data, isLoading, isError, refetch } = useCollections();
 
   return (
     <div className="bg-background min-h-screen">
@@ -17,7 +18,18 @@ export default function CollectionsPage() {
           <h1 className="text-4xl font-serif text-text-primary">Our Collections</h1>
         </div>
         
-        {isLoading ? (
+        {isError ? (
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+            <p className="text-base font-medium text-text-primary mb-2">Unable to load collections</p>
+            <p className="text-sm text-text-secondary mb-6 font-light">Something went wrong while connecting to the store. Please try again.</p>
+            <button
+              onClick={() => refetch()}
+              className="px-6 py-2.5 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="space-y-24">
             {[1,2].map(i => <div key={i} className="h-96 w-full bg-muted animate-pulse rounded-2xl" />)}
           </div>
@@ -40,7 +52,7 @@ export default function CollectionsPage() {
                 <div className="w-full md:w-1/2">
                   <div className="w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-sm relative group bg-muted flex items-center justify-center">
                     {c.imageUrl ? (
-                      <img src={encodeURI(c.imageUrl)} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                      <img src={getImageUrl(c.imageUrl)} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                     ) : (
                       <span className="font-serif text-2xl text-text-secondary">{c.name}</span>
                     )}

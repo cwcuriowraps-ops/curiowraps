@@ -7,6 +7,8 @@ import { useState, useEffect, useRef } from "react";
 
 import { useCart, useUpdateCartItem, useRemoveCartItem } from "@/api/cart";
 import { useWishlist } from "@/api/wishlist";
+import { getImageUrl } from "@/lib/image-utils";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartUIStore } from "@/store/useCartUIStore";
 
@@ -166,7 +168,7 @@ export function Header() {
                           >
                             {item.variant?.product?.images?.[0]?.url ? (
                               <img 
-                                src={encodeURI(item.variant.product.images[0].url)} 
+                                src={getImageUrl(item.variant.product.images[0].url)} 
                                 alt={item.variant?.product?.name} 
                                 className="w-12 h-12 object-cover rounded-lg bg-muted flex-shrink-0"
                               />
@@ -182,8 +184,12 @@ export function Header() {
                                   type="button"
                                   onClick={() =>
                                     removeCartItem.mutate(item.variantId, {
-                                      onSuccess: () => addToast({ title: "Item Removed", description: "Item removed from cart.", type: "info" }),
-                                      onError: (err: any) => addToast({ title: "Removal Failed", description: err.message, type: "error" }),
+                                      onError: (err: any) =>
+                                        addToast({
+                                          title: "Removal Failed",
+                                          description: sanitizeErrorMessage(err, "Could not remove item from cart."),
+                                          type: "error",
+                                        }),
                                     })
                                   }
                                   className="text-text-secondary hover:text-accent text-xs p-0.5"
@@ -206,8 +212,12 @@ export function Header() {
                                       updateCartItem.mutate(
                                         { itemId: item.variantId, quantity: Math.max(1, item.quantity - 1) },
                                         {
-                                          onSuccess: () => addToast({ title: "Cart Updated", description: "Quantity updated.", type: "info" }),
-                                          onError: (err: any) => addToast({ title: "Update Failed", description: err.message, type: "error" }),
+                                          onError: (err: any) =>
+                                            addToast({
+                                              title: "Update Failed",
+                                              description: sanitizeErrorMessage(err, "Could not update cart quantity."),
+                                              type: "error",
+                                            }),
                                         }
                                       )
                                     }
@@ -223,8 +233,12 @@ export function Header() {
                                       updateCartItem.mutate(
                                         { itemId: item.variantId, quantity: item.quantity + 1 },
                                         {
-                                          onSuccess: () => addToast({ title: "Cart Updated", description: "Quantity updated.", type: "info" }),
-                                          onError: (err: any) => addToast({ title: "Update Failed", description: err.message, type: "error" }),
+                                          onError: (err: any) =>
+                                            addToast({
+                                              title: "Update Failed",
+                                              description: sanitizeErrorMessage(err, "Could not update cart quantity."),
+                                              type: "error",
+                                            }),
                                         }
                                       )
                                     }

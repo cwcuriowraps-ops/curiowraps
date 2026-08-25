@@ -8,7 +8,10 @@ export interface Category {
   name: string;
   slug: string;
   description?: string;
+  imageUrl?: string | null;
   parentId?: string | null;
+  isActive?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface Product {

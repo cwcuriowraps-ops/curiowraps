@@ -117,11 +117,7 @@ export default function LoginPage() {
         type: "success",
       });
 
-      if (typeof window !== "undefined") {
-        window.location.assign("/");
-      } else {
-        router.push("/");
-      }
+      router.push("/");
     } catch (error: any) {
       setIsLoading(false);
       // Clear password ONLY on failed authentication response, retaining email
@@ -143,16 +139,10 @@ export default function LoginPage() {
           description: "Too many login attempts. Please try again later.",
           type: "error",
         });
-      } else if (errorCode === "ACCOUNT_NOT_FOUND" || status === 404 || errorMsg.includes("not found") || errorMsg.includes("no account")) {
-        addToast({
-          title: "Account Not Found",
-          description: "No account found with this email.",
-          type: "error",
-        });
-      } else if (errorCode === "INCORRECT_PASSWORD" || status === 401 || errorMsg.includes("password") || errorMsg.includes("credentials")) {
+      } else if (status === 401 || status === 404 || errorCode === "INVALID_CREDENTIALS" || errorCode === "ACCOUNT_NOT_FOUND" || errorCode === "INCORRECT_PASSWORD") {
         addToast({
           title: "Authentication Failed",
-          description: "Incorrect password. Please try again.",
+          description: "Invalid email or password.",
           type: "error",
         });
       } else if (status >= 500) {
@@ -164,7 +154,7 @@ export default function LoginPage() {
       } else {
         addToast({
           title: "Login Failed",
-          description: error.message || "Invalid credentials. Please try again.",
+          description: error.message || "Invalid email or password.",
           type: "error",
         });
       }
@@ -236,6 +226,7 @@ export default function LoginPage() {
                   size="lg"
                   width="auth"
                   loading={isLoading}
+                  loadingText="Signing in…"
                   disabled={isLoading}
                   className="shadow-md shadow-accent/20 transition-all duration-200 cursor-pointer active:scale-[0.98]"
                   aria-disabled={isLoading}

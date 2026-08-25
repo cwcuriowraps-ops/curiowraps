@@ -29,7 +29,7 @@ const categorySchema = z.object({
 });
 
 export default function CategoriesPage() {
-  const { data, isLoading } = useAdminCategories();
+  const { data, isLoading, isError, error, refetch } = useAdminCategories();
   const { mutate: deleteCategory, isPending: _isDeleting } = useDeleteCategory();
   const { mutateAsync: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutateAsync: updateCategory, isPending: isUpdating } = useUpdateCategory();
@@ -124,7 +124,7 @@ export default function CategoriesPage() {
       }
       addToast({
         title: "Save Failed",
-        description: error?.message || "Failed to save category",
+        description: "Failed to save category. Please try again.",
         type: "error",
       });
     } finally {
@@ -148,7 +148,7 @@ export default function CategoriesPage() {
   const handleDelete = (id: string) => {
     deleteCategory(id, {
       onSuccess: () => addToast({ title: "Category deleted successfully", type: "success" }),
-      onError: (err: any) => addToast({ title: "Failed to delete category", description: err.message, type: "error" }),
+      onError: (_err: any) => addToast({ title: "Delete Failed", description: "Failed to delete category. Please try again.", type: "error" }),
     });
   };
 
@@ -185,6 +185,18 @@ export default function CategoriesPage() {
                   <td className="px-6 py-4"><Skeleton className="h-8 w-16 ml-auto" /></td>
                 </tr>
               ))
+            ) : isError ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center">
+                  <p className="text-sm font-semibold text-red-500">Failed to load categories</p>
+                  <p className="mt-1 text-xs text-text-secondary font-light">
+                    {(error as any)?.message || "Something went wrong while connecting to the server."}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                    Retry
+                  </Button>
+                </td>
+              </tr>
             ) : data?.data?.categories?.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-text-secondary">No categories found</td>

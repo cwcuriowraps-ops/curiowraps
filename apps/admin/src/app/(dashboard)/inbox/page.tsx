@@ -63,7 +63,7 @@ export default function InboxPage() {
     setSelectedMessageId(msg.id);
     // Automatically mark as READ if currently UNREAD
     if (msg.status === "UNREAD") {
-      updateStatusMutation.mutate({ id: msg.id, status: "READ" });
+      updateStatusMutation.mutate({ id: msg.id, status: "READ", silent: true });
     }
   };
 

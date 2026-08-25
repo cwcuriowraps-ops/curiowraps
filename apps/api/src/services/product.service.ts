@@ -1,13 +1,12 @@
 import type { PrismaClient } from "@dashboard/database";
 
+import { invalidateDashboardStatsCache } from "../controllers/admin-system.controller";
 import { AppError } from "../middleware/error-handler";
 import { BrandRepository } from "../repositories/brand.repository";
 import { ProductRepository } from "../repositories/product.repository";
 
 import { AuditService } from "./audit.service";
 import { RedisService } from "./redis.service";
-
-
 
 export class ProductService {
   private readonly auditService: AuditService;
@@ -22,14 +21,7 @@ export class ProductService {
   }
 
   async getAllProducts(includeInactive = false) {
-    if (!includeInactive) {
-      const cached = await this.redisService.get<any[]>("products:all:active");
-      if (cached) return cached;
-    }
     const products = await this.productRepository.findAll(includeInactive);
-    if (!includeInactive) {
-      await this.redisService.set("products:all:active", products, 3600);
-    }
     return products;
   }
 
@@ -51,10 +43,6 @@ export class ProductService {
   }
 
   async getProductBySlug(slug: string) {
-    const cacheKey = `product:slug:${slug}`;
-    const cached = await this.redisService.get<any>(cacheKey);
-    if (cached) return cached;
-
     let decodedSlug = slug;
     try {
       decodedSlug = decodeURIComponent(slug);
@@ -69,9 +57,7 @@ export class ProductService {
 
     if (!product) throw new AppError(404, "NOT_FOUND", "Product not found");
 
-    const result = { ...product, basePrice: (product as any).variants?.[0]?.price ?? null };
-    await this.redisService.set(cacheKey, result, 3600);
-    return result;
+    return { ...product, basePrice: (product as any).variants?.[0]?.price ?? null };
   }
 
   private generateSlug(name: string) {
@@ -237,6 +223,7 @@ export class ProductService {
 
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
+    invalidateDashboardStatsCache();
 
     return product;
   }
@@ -284,6 +271,7 @@ export class ProductService {
 
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
+    invalidateDashboardStatsCache();
 
     return updatedProduct;
   }
@@ -305,6 +293,7 @@ export class ProductService {
 
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
+    invalidateDashboardStatsCache();
   }
 
   async restoreProduct(id: string, actorUserId: string, context: any) {
@@ -323,5 +312,6 @@ export class ProductService {
 
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
+    invalidateDashboardStatsCache();
   }
 }

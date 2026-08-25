@@ -1,8 +1,14 @@
+let cachedCustomerRole: any = null;
+
 export class RoleRepository {
   constructor(private readonly prisma: any) {}
 
-  ensureCustomerRole() {
-    return this.prisma.role.upsert({
+  async ensureCustomerRole() {
+    if (cachedCustomerRole) {
+      return cachedCustomerRole;
+    }
+
+    const role = await this.prisma.role.upsert({
       where: { name: "CUSTOMER" },
       create: {
         name: "CUSTOMER",
@@ -10,5 +16,8 @@ export class RoleRepository {
       },
       update: {},
     });
+
+    cachedCustomerRole = role;
+    return role;
   }
 }

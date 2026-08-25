@@ -20,17 +20,17 @@ const WORKER_ERROR_BACKOFF_MAX_MS = 5 * 60_000;  // 5 min
  * higher value reduces idle polling commands at the cost of slightly higher
  * latency on the first job of a new burst.
  *
- * Default BullMQ value: 5 s → ~17,280 BZPOPMIN/day (idle).
- * Our value:           30 s →  2,880 BZPOPMIN/day (idle). −83 % reduction.
+ * Default BullMQ value:  5 s → ~17,280 BZPOPMIN/day (idle).
+ * Our value:           120 s →    720 BZPOPMIN/day (idle). −95.8 % reduction.
  */
-const WORKER_DRAIN_DELAY_S = 30;
+const WORKER_DRAIN_DELAY_S = 120;
 
 /**
  * stalledInterval (ms): how often BullMQ scans for stalled active jobs.
- * Default: 30,000 ms → 2,880 scans/day.
- * Our value: 60,000 ms → 1,440 scans/day. −50 % stall-check commands.
+ * Default:   30,000 ms → 2,880 scans/day.
+ * Our value: 300,000 ms →   288 scans/day. −90 % stall-check commands.
  */
-const WORKER_STALLED_INTERVAL_MS = 60_000;
+const WORKER_STALLED_INTERVAL_MS = 300_000;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -117,6 +117,14 @@ export class QueueService {
     this.emailQueue = new Queue("emailQueue", {
       connection: bullConnection,
       defaultJobOptions,
+    });
+
+    this.emailQueue.on("error", (err: Error) => {
+      if (isQuotaError(err)) {
+        console.warn("[BullMQ][Queue] Upstash quota exceeded on emailQueue connection:", err.message);
+      } else {
+        console.warn("[BullMQ][Queue] Redis connection error on emailQueue:", err.message);
+      }
     });
 
     const emailWorker = new Worker(

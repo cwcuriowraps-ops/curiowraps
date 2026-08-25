@@ -12,6 +12,8 @@ describe("createApiConfig", () => {
       CORS_ORIGINS: "https://app.example.com, https://admin.example.com",
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/ecommerce",
       DIRECT_URL: "postgresql://postgres:postgres@db:5432/ecommerce-direct",
+      JWT_ACCESS_SECRET: "this-is-a-32-character-jwt-access-secret-for-test",
+      JWT_REFRESH_SECRET: "this-is-a-32-character-jwt-refresh-secret-for-test",
       LOG_LEVEL: "warn",
     });
 

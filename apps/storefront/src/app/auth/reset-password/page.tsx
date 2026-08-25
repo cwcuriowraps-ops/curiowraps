@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { useResetPassword } from "@/api/auth";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 const resetPasswordSchema = z
   .object({
@@ -59,7 +60,7 @@ function ResetPasswordForm() {
         onError: (error: any) => {
           addToast({
             title: "Password reset failed",
-            description: error.message || "The token may be invalid or expired.",
+            description: sanitizeErrorMessage(error, "The reset token may be invalid or expired. Please request a new link."),
             type: "error",
           });
         },
@@ -111,6 +112,7 @@ function ResetPasswordForm() {
           width="auth"
           size="md"
           loading={isPending}
+          loadingText="Updating password…"
           disabled={isPending}
           className="shadow-md hover:shadow-lg transition-all"
         >

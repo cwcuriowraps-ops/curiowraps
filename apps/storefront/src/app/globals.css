@@ -111,3 +111,12 @@ h1, h2, h3, h4, h5, h6, .font-serif {
   animation: highlight-fade 2s ease-out forwards;
 }
 
+/* Darker background specifically for product image cards — distinct from bg-muted */
+.product-image-bg {
+  background-color: #ededed;
+}
+
+.dark .product-image-bg {
+  background-color: #1a1a1a;
+}
+

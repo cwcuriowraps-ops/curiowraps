@@ -4,9 +4,10 @@ import { apiClient } from "../lib/api-client";
 import { useAuthStore } from "../store/useAuthStore";
 
 export const fetchCart = async (token: string | null) => {
-  return apiClient<{ cart: any }>("/cart", {
+  const res = await apiClient<{ data?: { cart: any }, cart?: any }>("/cart", {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+  return { cart: res?.data?.cart || res?.cart || null };
 };
 
 export const useCart = () => {
@@ -23,12 +24,14 @@ export const useAddToCart = () => {
   const { token } = useAuthStore();
 
   return useMutation({
-    mutationFn: (data: { variantId: string; quantity: number; customization?: string }) =>
-      apiClient<{ cart: any }>("/cart/items", {
+    mutationFn: async (data: { variantId: string; quantity: number; customization?: string }) => {
+      const res = await apiClient<{ data?: { cart: any }, cart?: any }>("/cart/items", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
-      }),
+      });
+      return { cart: res?.data?.cart || res?.cart || null };
+    },
     onSuccess: (data) => {
       queryClient.setQueryData(["cart", token], data);
       queryClient.invalidateQueries({ queryKey: ["cart"] });
@@ -41,12 +44,14 @@ export const useUpdateCartItem = () => {
   const { token } = useAuthStore();
 
   return useMutation({
-    mutationFn: (data: { itemId: string; quantity: number }) =>
-      apiClient<{ cart: any }>(`/cart/items/${data.itemId}`, {
+    mutationFn: async (data: { itemId: string; quantity: number }) => {
+      const res = await apiClient<{ data?: { cart: any }, cart?: any }>(`/cart/items/${data.itemId}`, {
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({ quantity: data.quantity }),
-      }),
+      });
+      return { cart: res?.data?.cart || res?.cart || null };
+    },
     onMutate: async (newData) => {
       await queryClient.cancelQueries({ queryKey: ["cart", token] });
       const previousCartData = queryClient.getQueryData(["cart", token]);
@@ -90,11 +95,13 @@ export const useRemoveCartItem = () => {
   const { token } = useAuthStore();
 
   return useMutation({
-    mutationFn: (itemId: string) =>
-      apiClient<{ cart: any }>(`/cart/items/${itemId}`, {
+    mutationFn: async (itemId: string) => {
+      const res = await apiClient<{ data?: { cart: any }, cart?: any }>(`/cart/items/${itemId}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }),
+      });
+      return { cart: res?.data?.cart || res?.cart || null };
+    },
     onMutate: async (itemId) => {
       await queryClient.cancelQueries({ queryKey: ["cart", token] });
       const previousCartData = queryClient.getQueryData(["cart", token]);

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { apiClient } from "@/lib/api-client";
+import { getImageUrl } from "@/lib/image-utils";
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -51,10 +52,10 @@ function SearchContent() {
               transition={{ delay: i * 0.05 }}
             >
               <Link href={`/products/${p.slug}`} className="group block">
-                <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl bg-muted mb-4 relative shadow-sm flex items-center justify-center">
+                <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl product-image-bg mb-4 relative shadow-sm flex items-center justify-center">
                   {p.images?.[0]?.url ? (
                     <img
-                      src={encodeURI(p.images[0].url)}
+                      src={getImageUrl(p.images[0].url)}
                       alt={p.name}
                       className="h-full w-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out"
                     />

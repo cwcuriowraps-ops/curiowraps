@@ -60,7 +60,7 @@ export type OrderStatus =
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 
-export type PaymentMethod = "RAZORPAY" | "COD";
+export type PaymentMethod = "UPI" | "COD";
 
 export interface Money {
   amount: string;

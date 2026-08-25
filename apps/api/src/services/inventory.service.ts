@@ -25,7 +25,13 @@ export class InventoryService {
     return this.inventoryRepository.getAllInventory(options);
   }
 
+  private cachedDefaultLocationId: string | null = null;
+
   async getDefaultLocationId(tx?: any) {
+    if (!tx && this.cachedDefaultLocationId) {
+      return this.cachedDefaultLocationId;
+    }
+
     const client = tx ?? this.prisma;
     const location = await client.inventoryLocation.findFirst({
       where: { isActive: true },
@@ -35,6 +41,10 @@ export class InventoryService {
 
     if (!location) {
       throw new AppError(500, "INVENTORY_LOCATION_MISSING", "No active inventory location is configured");
+    }
+
+    if (!tx) {
+      this.cachedDefaultLocationId = location.id;
     }
 
     return location.id;

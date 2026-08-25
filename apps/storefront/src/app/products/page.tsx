@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useCallback, useRef } from "react";
 
 import { useInfiniteProducts, useCategories, type Product, type Category } from "@/api/products";
+import { getImageUrl } from "@/lib/image-utils";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -20,7 +21,7 @@ function ProductsContent() {
   const categoriesList: Category[] = categoriesData?.categories || [];
 
   const filters = {
-    ...(categoryParam && { categoryId: categoriesList.find((c) => c.slug === categoryParam)?.id }),
+    ...(categoryParam && { categoryId: categoriesList.find((c) => c.slug === categoryParam)?.id || categoryParam }),
     ...(searchParam && { search: searchParam }),
     ...(brandParam && { brand: brandParam }),
   };
@@ -141,10 +142,10 @@ function ProductsContent() {
               className="group cursor-pointer"
             >
               <Link href={`/products/${prod.slug}`}>
-                <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-muted relative">
+                <div className="aspect-[4/5] overflow-hidden rounded-2xl product-image-bg relative">
                   {prod.images?.[0]?.url ? (
                     <Image
-                      src={encodeURI(prod.images[0].url)}
+                      src={getImageUrl(prod.images[0].url)}
                       alt={prod.name}
                       fill
                       priority={index < 3}

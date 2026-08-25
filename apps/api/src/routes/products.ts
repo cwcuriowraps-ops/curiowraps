@@ -8,8 +8,8 @@ export function createPublicProductRouter(deps: any) {
   const router = Router();
   const controller = createProductController(deps);
 
-  router.get("/", cacheControl(60, 300, 600), asyncHandler(controller.getAll));
-  router.get("/:slug", cacheControl(60, 300, 600), asyncHandler(controller.getBySlug));
+  router.get("/", cacheControl(), asyncHandler(controller.getAll));
+  router.get("/:slug", cacheControl(), asyncHandler(controller.getBySlug));
 
   return router;
 }

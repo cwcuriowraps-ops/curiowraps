@@ -18,40 +18,60 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
         where.productId = String(productId);
       }
 
-      const [reviews, total, aggregateStats, rawRatingCounts] = await Promise.all([
-        deps.prisma.review.findMany({
-          where,
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-            product: { select: { id: true, name: true, slug: true } },
-          },
-          orderBy: { createdAt: "desc" },
-          skip,
-          take: Number(limit),
-        }),
-        deps.prisma.review.count({ where }),
-        deps.prisma.review.aggregate({
-          where,
-          _avg: { rating: true },
-          _count: { rating: true },
-        }),
-        deps.prisma.review.groupBy({
-          by: ["rating"],
-          where,
-          _count: { rating: true },
-        }),
-      ]);
-
-      const distribution: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-      rawRatingCounts.forEach((item: any) => {
-        if (item.rating >= 1 && item.rating <= 5) {
-          distribution[item.rating] = item._count.rating;
-        }
+      const reviews = await deps.prisma.review.findMany({
+        where,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+          product: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: Number(limit),
       });
 
-      const avgRatingRaw = aggregateStats._avg.rating || 0;
-      const averageRating = Math.round(avgRatingRaw * 10) / 10;
-      const reviewCount = aggregateStats._count.rating || 0;
+      let total = reviews.length;
+      let averageRating = 0;
+      let reviewCount = 0;
+      const distribution: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+      if (skip === 0 && reviews.length < Number(limit)) {
+        // Fast-path: all reviews fit on page 1, compute stats in memory without extra DB queries
+        reviewCount = reviews.length;
+        if (reviewCount > 0) {
+          let sum = 0;
+          reviews.forEach((r: any) => {
+            sum += r.rating;
+            if (r.rating >= 1 && r.rating <= 5) {
+              distribution[r.rating] = (distribution[r.rating] || 0) + 1;
+            }
+          });
+          averageRating = Math.round((sum / reviewCount) * 10) / 10;
+        }
+      } else {
+        const [totalCount, aggregateStats, rawRatingCounts] = await Promise.all([
+          deps.prisma.review.count({ where }),
+          deps.prisma.review.aggregate({
+            where,
+            _avg: { rating: true },
+            _count: { rating: true },
+          }),
+          deps.prisma.review.groupBy({
+            by: ["rating"],
+            where,
+            _count: { rating: true },
+          }),
+        ]);
+
+        total = totalCount;
+        rawRatingCounts.forEach((item: any) => {
+          if (item.rating >= 1 && item.rating <= 5) {
+            distribution[item.rating] = item._count.rating;
+          }
+        });
+        const avgRatingRaw = aggregateStats._avg.rating || 0;
+        averageRating = Math.round(avgRatingRaw * 10) / 10;
+        reviewCount = aggregateStats._count.rating || 0;
+      }
 
       res.json({
         success: true,
@@ -66,7 +86,7 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
             total,
             page: Number(page),
             limit: Number(limit),
-            totalPages: Math.ceil(total / Number(limit)),
+            totalPages: Math.ceil(total / Number(limit)) || 1,
           },
         },
       });
@@ -78,7 +98,7 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
   // Check if logged-in user is eligible to review a product
   router.get("/eligibility", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.id || req.authUser?.id;
       const { productId } = req.query;
 
       if (!productId || typeof productId !== "string") {
@@ -86,27 +106,28 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
         return;
       }
 
-      // Find if user has a DELIVERED or COMPLETED order containing this product
-      const deliveredOrder = await deps.prisma.order.findFirst({
-        where: {
-          userId,
-          status: { in: ["DELIVERED", "COMPLETED"] },
-          items: {
-            some: {
-              productId: String(productId),
+      // Parallelize checking delivered purchase and existing review
+      const [deliveredOrder, existingReview] = await Promise.all([
+        deps.prisma.order.findFirst({
+          where: {
+            userId,
+            status: "DELIVERED",
+            items: {
+              some: {
+                productId: String(productId),
+              },
             },
           },
-        },
-        select: { id: true, status: true, createdAt: true },
-      });
-
-      const existingReview = await deps.prisma.review.findFirst({
-        where: {
-          userId,
-          productId: String(productId),
-          deletedAt: null,
-        },
-      });
+          select: { id: true, status: true, createdAt: true },
+        }),
+        deps.prisma.review.findFirst({
+          where: {
+            userId,
+            productId: String(productId),
+            deletedAt: null,
+          },
+        }),
+      ]);
 
       const hasPurchased = Boolean(deliveredOrder);
       const canReview = hasPurchased;
@@ -131,7 +152,7 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
   // Get current user's submitted reviews
   router.get("/my-reviews", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.id || req.authUser?.id;
       const reviews = await deps.prisma.review.findMany({
         where: { userId, deletedAt: null },
         include: {
@@ -152,7 +173,7 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
   // Create or Update a review (Strictly for delivered orders)
   router.post("/", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.id || req.authUser?.id;
       const { productId, rating, title, body, comment, images = [] } = req.body;
 
       if (!productId) {
@@ -166,11 +187,11 @@ export function createPublicReviewRouter(deps: ApiDependencies) {
         return;
       }
 
-      // Verify that user has purchased and received the product (status DELIVERED / COMPLETED)
+      // Verify that user has purchased and received the product (status DELIVERED)
       const deliveredOrder = await deps.prisma.order.findFirst({
         where: {
           userId,
-          status: { in: ["DELIVERED", "COMPLETED"] },
+          status: "DELIVERED",
           items: {
             some: {
               productId: String(productId),

@@ -9,9 +9,10 @@ export function useAddresses() {
   return useQuery({
     queryKey: ["addresses"],
     queryFn: async () => {
-      return apiClient<{ addresses: any[] }>("/users/addresses", {
+      const res = await apiClient<any>("/users/addresses", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      return res?.data || res;
     },
     enabled: !!token,
   });
@@ -23,11 +24,12 @@ export function useCreateAddress() {
 
   return useMutation({
     mutationFn: async (payload: any) => {
-      return apiClient<{ address: any }>("/users/addresses", {
+      const res = await apiClient<any>("/users/addresses", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(payload),
       });
+      return res?.data || res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
@@ -41,11 +43,12 @@ export function useUpdateAddress() {
 
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
-      return apiClient<{ address: any }>(`/users/addresses/${id}`, {
+      const res = await apiClient<any>(`/users/addresses/${id}`, {
         method: "PUT",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(payload),
       });
+      return res?.data || res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
@@ -59,10 +62,11 @@ export function useDeleteAddress() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      return apiClient<any>(`/users/addresses/${id}`, {
+      const res = await apiClient<any>(`/users/addresses/${id}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      return res?.data || res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });

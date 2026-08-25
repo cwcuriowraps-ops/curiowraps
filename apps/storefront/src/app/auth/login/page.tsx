@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { useLogin, useOAuthLogin } from "@/api/auth";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -16,7 +17,7 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const { mutate: login, isPending } = useLogin();
-  const { mutate: oauthLogin } = useOAuthLogin();
+  const { mutate: oauthLogin, isPending: isOAuthPending } = useOAuthLogin();
   const { addToast } = useToast();
 
   const {
@@ -29,17 +30,10 @@ export default function LoginPage() {
 
   const onSubmit = (data: any) => {
     login(data, {
-      onSuccess: () => {
-        addToast({
-          title: "Welcome back! 👋",
-          description: "Signed in successfully.",
-          type: "success",
-        });
-      },
       onError: (error: any) => {
         addToast({
           title: "Login Failed",
-          description: error.message || "Invalid credentials",
+          description: sanitizeErrorMessage(error, "Invalid email or password."),
           type: "error",
         });
       },
@@ -48,7 +42,14 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border">
+      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
+        {isOAuthPending && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-sm rounded-[24px]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mb-3" />
+            <p className="text-sm font-medium text-text-primary">Authenticating with Google...</p>
+          </div>
+        )}
+
         <div className="flex flex-col items-center">
           <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
             Welcome back
@@ -69,15 +70,12 @@ export default function LoginPage() {
                   oauthLogin(
                     { provider: "GOOGLE", idToken: credentialResponse.credential },
                     {
-                      onSuccess: () => {
-                        addToast({
-                          title: "Welcome back! 👋",
-                          description: "Signed in with Google successfully.",
-                          type: "success",
-                        });
-                      },
                       onError: (error: any) => {
-                        addToast({ title: "Google Login Failed", description: error.message, type: "error" });
+                        addToast({
+                          title: "Google Login Failed",
+                          description: sanitizeErrorMessage(error, "Could not sign in with Google. Please try again."),
+                          type: "error",
+                        });
                       },
                     }
                   );
@@ -148,7 +146,7 @@ export default function LoginPage() {
           </div>
 
           <div className="pt-4 flex justify-center">
-            <Button type="submit" width="auth" size="md" loading={isPending} disabled={isPending} className="shadow-md hover:shadow-lg transition-all">
+            <Button type="submit" width="auth" size="md" loading={isPending} loadingText="Signing in…" disabled={isPending} className="shadow-md hover:shadow-lg transition-all">
               Sign in
             </Button>
           </div>

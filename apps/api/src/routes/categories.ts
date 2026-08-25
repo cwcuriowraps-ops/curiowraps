@@ -9,8 +9,8 @@ export function createPublicCategoryRouter(deps: any) {
   const controller = createCategoryController(deps);
 
   // Public category routes do not require authentication or specific permissions
-  router.get("/", cacheControl(300, 900, 1800), asyncHandler(controller.getAll));
-  router.get("/:slug", cacheControl(300, 900, 1800), asyncHandler(controller.getBySlug));
+  router.get("/", cacheControl(), asyncHandler(controller.getAll));
+  router.get("/:slug", cacheControl(), asyncHandler(controller.getBySlug));
 
   return router;
 }

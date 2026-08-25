@@ -122,6 +122,10 @@ export class RedisService {
     return this._quotaExhausted;
   }
 
+  public isQuotaExceeded(): boolean {
+    return this._quotaExhausted;
+  }
+
   async get<T>(key: string): Promise<T | null> {
     // 1. Try Memory Cache
     const item = this.memoryCache.get(key);

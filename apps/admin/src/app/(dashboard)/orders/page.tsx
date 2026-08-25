@@ -4,12 +4,14 @@ import { Badge, Button, Input, Modal, Select, Skeleton, useToast } from "@dashbo
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Search, Eye, CreditCard, RefreshCcw, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useAdminOrders, useUpdateOrderStatus, useUpdateOrderPaymentStatus, useDeleteOrder } from "@/api/orders";
 import { ActionsMenu } from "@/components/actions-menu";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const statusSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"]),
@@ -22,10 +24,12 @@ const paymentStatusSchema = z.object({
 type PaymentStatusFormValues = z.infer<typeof paymentStatusSchema>;
 
 export default function OrdersPage() {
+  const router = useRouter();
   const { addToast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useAdminOrders({ page, limit: 15, search });
+  const debouncedSearch = useDebounce(search.trim(), 300);
+  const { data, isLoading, isError, error, refetch } = useAdminOrders({ page, limit: 15, search: debouncedSearch || undefined });
   const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateOrderStatus();
   const { mutateAsync: updatePaymentStatus, isPending: isUpdatingPayment } = useUpdateOrderPaymentStatus();
   const { mutateAsync: deleteOrder, isPending: isDeleting } = useDeleteOrder();
@@ -75,7 +79,8 @@ export default function OrdersPage() {
       setIsDeleteModalOpen(false);
       setOrderToDelete(null);
     } catch (error: any) {
-      addToast({ title: "Failed to delete order", description: error.message || "An error occurred while deleting the order.", type: "error" });
+      console.error("Order delete error:", error);
+      addToast({ title: "Delete Failed", description: "Failed to delete order. Please try again.", type: "error" });
     }
   };
 
@@ -87,7 +92,8 @@ export default function OrdersPage() {
       setIsModalOpen(false);
       setSelectedOrder(null);
     } catch (error: any) {
-      addToast({ title: "Failed to update order", description: error.message, type: "error" });
+      console.error("Order update error:", error);
+      addToast({ title: "Update Failed", description: "Failed to update order. Please try again.", type: "error" });
     }
   };
 
@@ -99,7 +105,8 @@ export default function OrdersPage() {
       setIsPaymentModalOpen(false);
       setSelectedOrder(null);
     } catch (error: any) {
-      addToast({ title: "Failed to update payment status", description: error.message, type: "error" });
+      console.error("Payment status update error:", error);
+      addToast({ title: "Update Failed", description: "Failed to update payment status. Please try again.", type: "error" });
     }
   };
 
@@ -154,6 +161,18 @@ export default function OrdersPage() {
                     <td className="px-6 py-4"><Skeleton className="h-8 w-20 ml-auto" /></td>
                   </tr>
                 ))
+              ) : isError ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <p className="text-sm font-semibold text-red-500">Failed to load orders</p>
+                    <p className="mt-1 text-xs text-text-secondary font-light">
+                      {(error as any)?.message || "Something went wrong while connecting to the server."}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                      Retry
+                    </Button>
+                  </td>
+                </tr>
               ) : data?.data?.orders?.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-text-secondary">No orders found</td>
@@ -203,7 +222,7 @@ export default function OrdersPage() {
                           {
                             label: "View Order Details",
                             icon: Eye,
-                            onClick: () => (window.location.href = `/orders/${order.id}`),
+                            onClick: () => router.push(`/orders/${order.id}`),
                           },
                           {
                             label: "Update Order Status",

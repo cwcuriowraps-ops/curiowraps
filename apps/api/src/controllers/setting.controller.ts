@@ -2,11 +2,13 @@ import type { Request, Response } from "express";
 
 import { AppError } from "../middleware/error-handler";
 import type { SettingRepository } from "../repositories/setting.repository";
+import type { CartService } from "../services/cart.service";
 import type { NotificationService } from "../services/notification.service";
 
 export interface SettingControllerDeps {
   settingRepository: SettingRepository;
   notificationService?: NotificationService;
+  cartService?: CartService;
 }
 
 export function createSettingController(deps: SettingControllerDeps) {
@@ -43,6 +45,9 @@ export function createSettingController(deps: SettingControllerDeps) {
       }));
 
       await deps.settingRepository.bulkUpsert(formattedSettings, userId);
+
+      // Invalidate cart settings cache immediately so changes reflect instantly
+      deps.cartService?.invalidateSettingsCache?.();
 
       const updatedSettings = await deps.settingRepository.findAll();
       const settingsMap = updatedSettings.reduce((acc, setting) => {

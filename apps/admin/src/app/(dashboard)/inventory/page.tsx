@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useAdjustInventory, useAdminInventory, useInventoryLocations } from "@/api/inventory";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const adjustSchema = z.object({
   locationId: z.string().min(1, "Location is required"),
@@ -23,7 +24,8 @@ export default function InventoryPage() {
   const { addToast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useAdminInventory({ page, limit: 20, search });
+  const debouncedSearch = useDebounce(search.trim(), 300);
+  const { data, isLoading, isError, error, refetch } = useAdminInventory({ page, limit: 20, search: debouncedSearch || undefined });
   const { data: locationsData, isLoading: isLoadingLocations } = useInventoryLocations();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,7 +72,8 @@ export default function InventoryPage() {
       addToast({ title: "Inventory updated successfully", type: "success" });
       closeAdjustModal();
     } catch (error: any) {
-      addToast({ title: "Failed to adjust inventory", description: error.message, type: "error" });
+      console.error("Inventory adjust error:", error);
+      addToast({ title: "Adjustment Failed", description: "Failed to adjust inventory. Please try again.", type: "error" });
     }
   };
 
@@ -125,6 +128,18 @@ export default function InventoryPage() {
                     <td className="px-6 py-4"><Skeleton className="h-8 w-20 ml-auto" /></td>
                   </tr>
                 ))
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <p className="text-sm font-semibold text-red-500">Failed to load inventory</p>
+                    <p className="mt-1 text-xs text-text-secondary font-light">
+                      {(error as any)?.message || "Something went wrong while connecting to the server."}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                      Retry
+                    </Button>
+                  </td>
+                </tr>
               ) : data?.data?.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-text-secondary">No inventory records found</td>

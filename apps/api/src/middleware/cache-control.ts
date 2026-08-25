@@ -6,14 +6,18 @@ import type { Request, Response, NextFunction } from "express";
  * @param sMaxAgeSeconds Shared CDN/proxy cache s-maxage in seconds
  * @param staleWhileRevalidate Stale-while-revalidate duration in seconds
  */
-export function cacheControl(maxAgeSeconds = 60, sMaxAgeSeconds = 300, staleWhileRevalidate = 600) {
+export function cacheControl(maxAgeSeconds = 0, sMaxAgeSeconds = 0, staleWhileRevalidate = 0) {
   return (req: Request, res: Response, next: NextFunction): void => {
     // Only apply cache control to GET and HEAD requests
     if (req.method === "GET" || req.method === "HEAD") {
-      res.setHeader(
-        "Cache-Control",
-        `public, max-age=${maxAgeSeconds}, s-maxage=${sMaxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidate}`
-      );
+      if (maxAgeSeconds === 0 && sMaxAgeSeconds === 0) {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      } else {
+        res.setHeader(
+          "Cache-Control",
+          `public, max-age=${maxAgeSeconds}, s-maxage=${sMaxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidate}`
+        );
+      }
     }
     next();
   };

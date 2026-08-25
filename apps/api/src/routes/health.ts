@@ -29,10 +29,17 @@ async function checkDatabase(prisma: ApiDependencies["prisma"]) {
 
 async function checkRedis(redisService: ApiDependencies["redisService"]) {
   try {
+    if (redisService.quotaExhausted) {
+      return { status: "error" as const };
+    }
     const client = redisService.getClient();
     if (!client) return { status: "disabled" as const };
-    const ping = await client.ping();
-    return ping === "PONG" ? { status: "ok" as const } : { status: "error" as const };
+    
+    // In-memory status check: ioredis sets client.status to "ready" when connected.
+    // This avoids executing a network PING command on every health probe.
+    return client.status === "ready" || client.status === "connect"
+      ? { status: "ok" as const }
+      : { status: "error" as const };
   } catch {
     return { status: "error" as const };
   }
@@ -97,9 +104,6 @@ export function createSystemRouter(deps: ApiDependencies) {
 
       if (databaseStatus.status !== "ok") {
         throw new AppError(503, "SERVICE_UNAVAILABLE", "Database is not ready");
-      }
-      if (redisStatus.status === "error") {
-        throw new AppError(503, "SERVICE_UNAVAILABLE", "Redis is not ready");
       }
 
       const health = createHealthPayload(true, databaseStatus.status, redisStatus.status);

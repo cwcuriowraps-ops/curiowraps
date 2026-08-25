@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { useWishlist, useRemoveFromWishlist } from "@/api/wishlist";
+import { getImageUrl } from "@/lib/image-utils";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function WishlistPage() {
@@ -14,16 +16,10 @@ export default function WishlistPage() {
 
   const handleRemove = (productId: string) => {
     removeMutation.mutate(productId, {
-      onSuccess: () => {
+      onError: (err) => {
         addToast({
-          title: "Removed from Wishlist",
-          type: "info",
-        });
-      },
-      onError: (err: any) => {
-        addToast({
-          title: "Failed to remove from Wishlist",
-          description: err.message || "An unexpected error occurred.",
+          title: "Removal Failed",
+          description: sanitizeErrorMessage(err, "Could not remove item from wishlist. Please try again."),
           type: "error",
         });
       },
@@ -74,7 +70,7 @@ export default function WishlistPage() {
               >
                 <div className="w-28 h-28 shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
                   {item.product.images?.[0]?.url ? (
-                    <img src={encodeURI(item.product.images[0].url)} alt={item.product.name} className="w-full h-full object-contain p-1" />
+                    <img src={getImageUrl(item.product.images[0].url)} alt={item.product.name} className="w-full h-full object-contain p-1" />
                   ) : (
                     <span className="font-serif text-xs text-text-secondary text-center p-1">{item.product.name}</span>
                   )}

@@ -11,41 +11,52 @@ export interface EmailSettingsPayload {
 }
 
 export const useSettings = (keys?: string[]) => {
-  const { token } = useAuthStore();
+  const { token, _hasHydrated } = useAuthStore();
   const queryParams = keys?.length ? `?keys=${keys.join(",")}` : "";
 
   return useQuery({
     queryKey: ["settings", keys],
     queryFn: async () => {
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await apiClient<{ data: { settings: Record<string, any> } }>(`/admin/settings${queryParams}`, { headers });
+      const response = await apiClient<{ data: { settings: Record<string, any> } }>(`/admin/settings${queryParams}`);
       return response.data.settings;
     },
-    enabled: !!token,
+    enabled: Boolean((_hasHydrated ?? true) && token),
   });
 };
 
 export const useUpdateSettings = () => {
-  const { token } = useAuthStore();
   const queryClient = useQueryClient();
   const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async (settings: Record<string, any>) => {
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await apiClient<{ data: { settings: Record<string, any> } }>("/admin/settings", {
         method: "PATCH",
-        headers,
         body: JSON.stringify({ settings }),
       });
       return response.data.settings;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.setQueryData(["settings", undefined], data);
-      addToast({ title: "Settings saved successfully", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["public-settings"] });
+
+      const isShipping = "shipping" in variables;
+      const isTaxes = "taxes" in variables;
+      const title = isShipping
+        ? "Shipping settings saved."
+        : isTaxes
+        ? "Tax settings saved."
+        : "Settings saved successfully.";
+
+      addToast({ title, type: "success" });
     },
     onError: (error: any) => {
-      addToast({ title: "Failed to save settings", description: error.message || "An unexpected error occurred.", type: "error" });
+      addToast({
+        title: "Could not save settings. Please try again.",
+        description: error?.message || "An error occurred while saving settings.",
+        type: "error",
+      });
     },
   });
 };
@@ -83,10 +94,10 @@ export const useUpdateEmailSettings = () => {
       queryClient.setQueryData(["email-settings"], res.data);
       addToast({ title: "Email Settings Saved", description: res.message || "Updated sender configurations successfully.", type: "success" });
     },
-    onError: (error: any) => {
+    onError: (_error: any) => {
       addToast({
         title: "Failed to save email settings",
-        description: error?.message || "An unexpected error occurred.",
+        description: "Failed to save email settings. Please try again.",
         type: "error",
       });
     },

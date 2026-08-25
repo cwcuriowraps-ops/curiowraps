@@ -16,6 +16,26 @@ export interface CreateBrandInput {
 
 export interface UpdateBrandInput extends Partial<CreateBrandInput> {}
 
+const BRANDS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let cachedBrands: { key: string; data: any; time: number }[] = [];
+
+function getCachedBrands(key: string) {
+  const entry = cachedBrands.find((b) => b.key === key);
+  if (entry && Date.now() - entry.time < BRANDS_CACHE_TTL_MS) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedBrands(key: string, data: any) {
+  cachedBrands = cachedBrands.filter((b) => b.key !== key);
+  cachedBrands.push({ key, data, time: Date.now() });
+}
+
+export function invalidateBrandsMemoryCache() {
+  cachedBrands = [];
+}
+
 export class BrandService {
   private readonly auditService: AuditService;
 
@@ -27,7 +47,15 @@ export class BrandService {
   }
 
   async getAllBrands(includeInactive = false) {
-    return this.brandRepository.findAll(includeInactive);
+    const cacheKey = String(includeInactive);
+    const cached = getCachedBrands(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const brands = await this.brandRepository.findAll(includeInactive);
+    setCachedBrands(cacheKey, brands);
+    return brands;
   }
 
   async getBrandById(id: string) {
@@ -64,6 +92,8 @@ export class BrandService {
       ...context,
     });
 
+    invalidateBrandsMemoryCache();
+
     return brand;
   }
 
@@ -97,6 +127,8 @@ export class BrandService {
       ...context,
     });
 
+    invalidateBrandsMemoryCache();
+
     return updatedBrand;
   }
 
@@ -114,6 +146,8 @@ export class BrandService {
       before: brand as any,
       ...context,
     });
+
+    invalidateBrandsMemoryCache();
   }
 
   async restoreBrand(id: string, actorUserId: string, context: any) {
@@ -129,5 +163,7 @@ export class BrandService {
       entityId: id,
       ...context,
     });
+
+    invalidateBrandsMemoryCache();
   }
 }

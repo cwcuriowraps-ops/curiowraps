@@ -10,6 +10,7 @@ import {
   useUpdateAddress,
   useDeleteAddress,
 } from "@/api/addresses";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 export default function AddressesPage() {
   const { data, isLoading } = useAddresses();
@@ -30,7 +31,7 @@ export default function AddressesPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("India");
+  const [country, setCountry] = useState("IN");
   const [isDefaultShipping, setIsDefaultShipping] = useState(false);
   const [isDefaultBilling, setIsDefaultBilling] = useState(false);
 
@@ -44,7 +45,7 @@ export default function AddressesPage() {
     setCity("");
     setState("");
     setPostalCode("");
-    setCountry("India");
+    setCountry("IN");
     setIsDefaultShipping(false);
     setIsDefaultBilling(false);
     setIsModalOpen(true);
@@ -60,7 +61,7 @@ export default function AddressesPage() {
     setCity(addr.city || "");
     setState(addr.state || "");
     setPostalCode(addr.postalCode || "");
-    setCountry(addr.country || "India");
+    setCountry(addr.country || "IN");
     setIsDefaultShipping(addr.isDefaultShipping || false);
     setIsDefaultBilling(addr.isDefaultBilling || false);
     setIsModalOpen(true);
@@ -70,7 +71,7 @@ export default function AddressesPage() {
     e.preventDefault();
 
     const payload = {
-      label: label.trim() || null,
+      label: label.trim() || undefined,
       recipientName: recipientName.trim(),
       phone: phone.trim(),
       line1: line1.trim(),
@@ -84,7 +85,7 @@ export default function AddressesPage() {
     };
 
     if (!payload.recipientName || !payload.phone || !payload.line1 || !payload.city || !payload.state || !payload.postalCode) {
-      addToast({ title: "Validation Error", description: "Please fill out all required fields.", type: "error" });
+      addToast({ title: "Incomplete Address", description: "Please fill out all required fields.", type: "warning" });
       return;
     }
 
@@ -98,7 +99,7 @@ export default function AddressesPage() {
       }
       setIsModalOpen(false);
     } catch (err: any) {
-      addToast({ title: "Error", description: err.message || "Failed to save address", type: "error" });
+      addToast({ title: "Error", description: sanitizeErrorMessage(err, "Failed to save address. Please try again."), type: "error" });
     }
   };
 
@@ -107,7 +108,7 @@ export default function AddressesPage() {
       await deleteAddress.mutateAsync(id);
       addToast({ title: "Address Deleted", description: "Address was deleted successfully.", type: "success" });
     } catch (err: any) {
-      addToast({ title: "Error", description: err.message || "Failed to delete address", type: "error" });
+      addToast({ title: "Error", description: sanitizeErrorMessage(err, "Failed to delete address. Please try again."), type: "error" });
     }
   };
 

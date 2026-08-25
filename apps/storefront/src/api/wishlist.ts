@@ -7,10 +7,12 @@ export const useWishlist = () => {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["wishlist", token],
-    queryFn: () =>
-      apiClient<{ items: any[] }>("/wishlist", {
+    queryFn: async () => {
+      const res = await apiClient<any>("/wishlist", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }),
+      });
+      return res?.data || res;
+    },
     enabled: !!token,
     staleTime: 60 * 1000,
   });

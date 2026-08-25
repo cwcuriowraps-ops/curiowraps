@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useLogout } from "@/api/auth";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const navItems = [
@@ -38,11 +39,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
-      onSuccess: () => {
+      onError: (err: any) => {
         addToast({
-          title: "Logged out",
-          description: "You have been signed out successfully.",
-          type: "info",
+          title: "Logout Failed",
+          description: sanitizeErrorMessage(err, "Could not sign out. Please try again."),
+          type: "error",
         });
       },
     });

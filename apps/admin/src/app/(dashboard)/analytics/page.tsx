@@ -1,17 +1,14 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 
-import { apiClient } from "@/lib/api-client";
+import { useDashboardStats } from "@/api/dashboard";
 
 export default function AnalyticsPage() {
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin-orders-analytics"],
-    queryFn: () => apiClient<any>("/admin/orders")
-  });
+  const { data: stats, isLoading } = useDashboardStats();
 
-  const orderList = orders?.data?.orders || [];
-  const totalRevenue = orderList.reduce((acc: number, o: any) => acc + Number(o.grandTotal || 0), 0);
-  const totalOrders = orderList.length;
+  const totalRevenue = stats?.totalRevenue || 0;
+  const totalOrders = stats?.totalOrders || 0;
+  const totalProducts = stats?.totalProducts || 0;
+  const totalCustomers = stats?.totalCustomers || 0;
 
   return (
     <div className="p-8">
@@ -27,6 +24,14 @@ export default function AnalyticsPage() {
           <div className="bg-surface p-6 rounded-lg border border-border shadow-sm">
             <h3 className="text-sm font-medium text-text-secondary mb-2">Total Orders</h3>
             <p className="text-3xl font-bold text-text-primary">{totalOrders}</p>
+          </div>
+          <div className="bg-surface p-6 rounded-lg border border-border shadow-sm">
+            <h3 className="text-sm font-medium text-text-secondary mb-2">Total Products</h3>
+            <p className="text-3xl font-bold text-text-primary">{totalProducts}</p>
+          </div>
+          <div className="bg-surface p-6 rounded-lg border border-border shadow-sm">
+            <h3 className="text-sm font-medium text-text-secondary mb-2">Total Customers</h3>
+            <p className="text-3xl font-bold text-text-primary">{totalCustomers}</p>
           </div>
         </div>
       )}

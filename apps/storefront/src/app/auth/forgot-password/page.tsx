@@ -27,18 +27,12 @@ export default function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: any) => {
-    addToast({
-      title: "Sending password reset email...",
-      description: "Authenticating request with the server...",
-      type: "loading",
-    });
-
     forgotPassword(data.email, {
       onSuccess: () => {
         setIsSubmitted(true);
         addToast({
-          title: "Password reset email sent.",
-          description: "Please check your inbox for instructions.",
+          title: "Request Processed",
+          description: "If an account exists with this email, you'll receive a password reset link.",
           type: "success",
         });
       },
@@ -61,12 +55,6 @@ export default function ForgotPasswordPage() {
             description: "Unable to connect to the server.",
             type: "error",
           });
-        } else if (errorCode === "ACCOUNT_NOT_FOUND" || status === 404 || errorMsg.includes("not found")) {
-          addToast({
-            title: "Account Not Found",
-            description: "No account found with this email.",
-            type: "error",
-          });
         } else if (errorCode === "EMAIL_SEND_FAILED" || errorMsg.includes("email")) {
           addToast({
             title: "Email Delivery Failed",
@@ -80,10 +68,11 @@ export default function ForgotPasswordPage() {
             type: "error",
           });
         } else {
+          setIsSubmitted(true);
           addToast({
-            title: "Request Failed",
-            description: error?.message || "Something went wrong. Please try again.",
-            type: "error",
+            title: "Request Processed",
+            description: "If an account exists with this email, you'll receive a password reset link.",
+            type: "success",
           });
         }
       },
@@ -121,6 +110,7 @@ export default function ForgotPasswordPage() {
                 width="auth"
                 size="md"
                 loading={isPending}
+                loadingText="Sending reset link…"
                 disabled={isPending}
                 className="shadow-md hover:shadow-lg transition-all"
               >
@@ -138,7 +128,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-8 space-y-6">
             <div className="rounded-2xl bg-accent/5 p-6 border border-accent/10">
               <p className="text-sm text-center text-text-primary">
-                Check your email for a link to reset your password. If it doesn&apos;t appear within a few minutes, check your spam folder.
+                If an account exists with this email, you will receive a password reset link. Please check your inbox and spam folder.
               </p>
             </div>
             <div className="text-center flex justify-center">

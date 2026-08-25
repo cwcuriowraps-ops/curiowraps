@@ -15,6 +15,7 @@ const fadeUp = {
 };
 
 import { useCategories, useCollections, useFeaturedProducts } from "@/api/products";
+import { getImageUrl } from "@/lib/image-utils";
 
 const curioFeatures = [
   { title: "Handmade with Love", description: "Every piece is uniquely crafted", icon: "🤍" },
@@ -85,8 +86,7 @@ export default function HomePage() {
               </Link>
               <Link href="/collections" className="w-full sm:w-fit">
                 <Button variant="outline" size="lg" className="w-full sm:w-fit gap-2">
-                  <span>Explore Collections</span>
-                  <span className="text-base leading-none">➔</span>
+                  <span>Explore Collections</span> <span className="text-base leading-none">➔</span>
                 </Button>
               </Link>
             </motion.div>
@@ -127,10 +127,10 @@ export default function HomePage() {
                 className="group cursor-pointer"
               >
                 <Link href={`/products/${prod.slug}`}>
-                  <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-muted relative">
+                  <div className="aspect-[4/5] overflow-hidden rounded-2xl product-image-bg relative">
                     {prod.images?.[0]?.url ? (
                       <Image
-                        src={encodeURI(prod.images[0].url)}
+                        src={getImageUrl(prod.images[0].url)}
                         alt={prod.name}
                         fill
                         priority={i < 2}
@@ -207,7 +207,7 @@ export default function HomePage() {
               >
                 {coll.imageUrl ? (
                   <Image
-                    src={encodeURI(coll.imageUrl)}
+                    src={getImageUrl(coll.imageUrl)}
                     alt={coll.name}
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"
@@ -265,7 +265,7 @@ export default function HomePage() {
                     <div className="aspect-square w-full max-w-[200px] overflow-hidden rounded-full bg-muted shadow-sm transition-shadow duration-500 group-hover:shadow-md relative flex items-center justify-center">
                       {cat.imageUrl ? (
                         <Image
-                          src={encodeURI(cat.imageUrl)}
+                          src={getImageUrl(cat.imageUrl)}
                           alt={cat.name}
                           fill
                           sizes="(max-width: 640px) 50vw, 25vw"

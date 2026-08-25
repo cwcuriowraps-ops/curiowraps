@@ -11,6 +11,7 @@ export function createAdminSettingRouter(deps: ApiDependencies) {
   const controller = createSettingController({
     settingRepository: deps.settingRepository,
     notificationService: deps.notificationService,
+    cartService: deps.cartService,
   });
   const requireAuth = createRequireAuth({ authService: deps.authService, config: deps.config });
 

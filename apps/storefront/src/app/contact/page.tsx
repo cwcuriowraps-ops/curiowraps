@@ -4,6 +4,7 @@ import { Button, useToast } from "@dashboard/ui";
 import { useState } from "react";
 
 import { apiClient } from "@/lib/api-client";
+import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 export default function ContactPage() {
   const { addToast } = useToast();
@@ -52,7 +53,7 @@ export default function ContactPage() {
     } catch (error: any) {
       addToast({
         title: "Failed to send message",
-        description: error.message || "An unexpected error occurred. Please try again later.",
+        description: sanitizeErrorMessage(error, "An unexpected error occurred. Please try again later."),
         type: "error",
       });
     } finally {
