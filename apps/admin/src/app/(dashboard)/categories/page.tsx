@@ -30,6 +30,7 @@ const categorySchema = z.object({
 
 export default function CategoriesPage() {
   const { data, isLoading, isError, error, refetch } = useAdminCategories();
+  const categories = data?.data?.categories ?? [];
   const { mutate: deleteCategory, isPending: _isDeleting } = useDeleteCategory();
   const { mutateAsync: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutateAsync: updateCategory, isPending: isUpdating } = useUpdateCategory();
@@ -197,12 +198,15 @@ export default function CategoriesPage() {
                   </Button>
                 </td>
               </tr>
-            ) : data?.data?.categories?.length === 0 ? (
+            ) : categories.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-text-secondary">No categories found</td>
+                <td colSpan={4} className="px-6 py-12 text-center text-text-secondary">
+                  <p className="text-base font-medium text-text-primary">No categories found</p>
+                  <p className="mt-1 text-xs text-text-secondary">Get started by creating your first product category.</p>
+                </td>
               </tr>
             ) : (
-              data?.data?.categories?.map((cat: any) => (
+              categories.map((cat: any) => (
                 <tr key={cat.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-text-primary flex items-center gap-3">
                     {cat.imageUrl ? (

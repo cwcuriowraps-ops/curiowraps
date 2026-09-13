@@ -93,48 +93,44 @@ export class ProductRepository {
     }
 
     const orderBy = sort === "createdAt_asc" ? ({ createdAt: "asc" } as const) : ({ createdAt: "desc" } as const);
-    const products = await this.prisma.product.findMany({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy,
-      include: {
-        brand: {
-          select: { id: true, name: true, slug: true },
-        },
-        categories: {
-          where: { category: { deletedAt: null } },
-          select: {
-            categoryId: true,
-            sortOrder: true,
-            category: { select: { id: true, name: true, slug: true } },
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy,
+        include: {
+          brand: {
+            select: { id: true, name: true, slug: true },
+          },
+          categories: {
+            where: { category: { deletedAt: null } },
+            select: {
+              categoryId: true,
+              sortOrder: true,
+              category: { select: { id: true, name: true, slug: true } },
+            },
+          },
+          variants: {
+            where: includeInactive ? {} : { deletedAt: null, isActive: true },
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              sku: true,
+              title: true,
+              price: true,
+              isDefault: true,
+              ...(includeInventory ? { inventory: { select: { quantityOnHand: true, reservedQuantity: true } } } : {}),
+            },
+          },
+          images: {
+            orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+            select: { id: true, url: true, isPrimary: true, sortOrder: true },
           },
         },
-        variants: {
-          where: includeInactive ? {} : { deletedAt: null, isActive: true },
-          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-          select: {
-            id: true,
-            sku: true,
-            title: true,
-            price: true,
-            isDefault: true,
-            ...(includeInventory ? { inventory: { select: { quantityOnHand: true, reservedQuantity: true } } } : {}),
-          },
-        },
-        images: {
-          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
-          select: { id: true, url: true, isPrimary: true, sortOrder: true },
-        },
-      },
-    });
-
-    let total: number;
-    if (page === 1 && products.length < limit) {
-      total = products.length;
-    } else {
-      total = await this.prisma.product.count({ where });
-    }
+      }),
+      this.prisma.product.count({ where }),
+    ]);
 
     return { products, total };
   }

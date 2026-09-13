@@ -1,4 +1,4 @@
-export const metadata = { title: "Privacy Policy | Curio Wrap" };
+export const metadata = { title: "Privacy Policy | Curio Wraps" };
 
 export default function PrivacyPage() {
   return (

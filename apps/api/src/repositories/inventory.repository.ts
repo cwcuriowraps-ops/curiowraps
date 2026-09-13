@@ -95,12 +95,15 @@ export class InventoryRepository {
    * Reserves inventory during checkout, ensuring overselling is prevented.
    */
   async reserveInventory(variantId: string, locationId: string, quantityToReserve: number, tx: any) {
-    // Lock row
-    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
+    // Lock row and fetch current stock in a single round-trip
+    const rows: any[] = await tx.$queryRaw`
+      SELECT id, "quantityOnHand", "reservedQuantity"
+      FROM "Inventory"
+      WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid
+      FOR UPDATE
+    `;
 
-    const inventory = await tx.inventory.findUnique({
-      where: { variantId_locationId: { variantId, locationId } },
-    });
+    const inventory = rows[0];
 
     if (!inventory) {
       throw new AppError(400, "BAD_REQUEST", `Product is out of stock (No inventory record)`);
@@ -119,11 +122,9 @@ export class InventoryRepository {
 
   /**
    * Commits the reserved inventory (deducts from both quantityOnHand and reservedQuantity).
+   * Note: In PostgreSQL, UPDATE ... WHERE ... locks the matching row automatically.
    */
   async commitInventory(variantId: string, locationId: string, quantityToCommit: number, tx: any) {
-    // Lock row
-    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
-
     return tx.inventory.update({
       where: { variantId_locationId: { variantId, locationId } },
       data: {
@@ -134,15 +135,48 @@ export class InventoryRepository {
   }
 
   /**
+   * Directly commits inventory (checks availability and decrements quantityOnHand in one step).
+   * Used for instant confirmation orders like COD.
+   */
+  async directCommitInventory(variantId: string, locationId: string, quantityToCommit: number, tx: any) {
+    const rows: any[] = await tx.$queryRaw`
+      SELECT id, "quantityOnHand", "reservedQuantity"
+      FROM "Inventory"
+      WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid
+      FOR UPDATE
+    `;
+
+    const inventory = rows[0];
+    if (!inventory) {
+      throw new AppError(400, "BAD_REQUEST", "Product is out of stock (No inventory record)");
+    }
+
+    const available = inventory.quantityOnHand - inventory.reservedQuantity;
+    if (available < quantityToCommit) {
+      throw new AppError(400, "BAD_REQUEST", `Product is out of stock (Available: ${available}, Requested: ${quantityToCommit})`);
+    }
+
+    return tx.inventory.update({
+      where: { variantId_locationId: { variantId, locationId } },
+      data: {
+        quantityOnHand: { decrement: quantityToCommit },
+      },
+    });
+  }
+
+  /**
    * Releases previously reserved inventory back to the available pool.
    */
   async releaseInventory(variantId: string, locationId: string, quantityToRelease: number, tx: any) {
-    // Lock row
-    await tx.$queryRaw`SELECT id FROM "Inventory" WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid FOR UPDATE`;
+    // Lock row and fetch in a single round-trip
+    const rows: any[] = await tx.$queryRaw`
+      SELECT id, "reservedQuantity"
+      FROM "Inventory"
+      WHERE "variantId" = ${variantId}::uuid AND "locationId" = ${locationId}::uuid
+      FOR UPDATE
+    `;
 
-    const inventory = await tx.inventory.findUnique({
-      where: { variantId_locationId: { variantId, locationId } },
-    });
+    const inventory = rows[0];
 
     if (inventory && inventory.reservedQuantity >= quantityToRelease) {
       return tx.inventory.update({

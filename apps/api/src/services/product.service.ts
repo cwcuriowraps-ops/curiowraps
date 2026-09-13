@@ -26,14 +26,28 @@ export class ProductService {
   }
 
   async getProducts(options: Parameters<ProductRepository["findPage"]>[0]) {
+    const isPublic = !options.includeInactive && !options.includeDeleted && !options.onlyDeleted;
+    const cacheKey = isPublic ? `products:page:${JSON.stringify(options)}` : null;
+
+    if (cacheKey) {
+      const cached = await this.redisService.get<any>(cacheKey);
+      if (cached) return cached;
+    }
+
     const result = await this.productRepository.findPage(options);
-    return {
+    const data = {
       ...result,
       products: result.products.map((product: any) => ({
         ...product,
         basePrice: product.variants?.[0]?.price ?? null,
       })),
     };
+
+    if (cacheKey) {
+      await this.redisService.set(cacheKey, data, 180); // 3 minutes TTL
+    }
+
+    return data;
   }
 
   async getProductById(id: string) {
@@ -43,6 +57,10 @@ export class ProductService {
   }
 
   async getProductBySlug(slug: string) {
+    const cacheKey = `products:slug:${slug}`;
+    const cached = await this.redisService.get<any>(cacheKey);
+    if (cached) return cached;
+
     let decodedSlug = slug;
     try {
       decodedSlug = decodeURIComponent(slug);
@@ -57,7 +75,9 @@ export class ProductService {
 
     if (!product) throw new AppError(404, "NOT_FOUND", "Product not found");
 
-    return { ...product, basePrice: (product as any).variants?.[0]?.price ?? null };
+    const result = { ...product, basePrice: (product as any).variants?.[0]?.price ?? null };
+    await this.redisService.set(cacheKey, result, 300); // 5 minutes TTL
+    return result;
   }
 
   private generateSlug(name: string) {

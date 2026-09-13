@@ -4,28 +4,25 @@ import { apiClient } from "../lib/api-client";
 import { useAuthStore } from "../store/useAuthStore";
 
 export const useAdminBrands = () => {
-  const { token } = useAuthStore();
+  const { token, _hasHydrated } = useAuthStore();
 
   return useQuery({
     queryKey: ["admin-brands"],
     queryFn: async () => {
-      return apiClient<{ data: { brands: any[] } }>("/admin/brands", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      return apiClient<{ data: { brands: any[] } }>("/admin/brands");
     },
-    enabled: !!token,
+    enabled: Boolean((_hasHydrated ?? true) && token),
+    staleTime: 60 * 1000,
   });
 };
 
 export const useCreateBrand = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: (data: any) =>
       apiClient("/admin/brands", {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
@@ -36,13 +33,11 @@ export const useCreateBrand = () => {
 
 export const useUpdateBrand = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       apiClient(`/admin/brands/${id}`, {
         method: "PATCH",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
@@ -53,13 +48,11 @@ export const useUpdateBrand = () => {
 
 export const useDeleteBrand = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   return useMutation({
     mutationFn: (id: string) =>
       apiClient(`/admin/brands/${id}`, {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-brands"] });

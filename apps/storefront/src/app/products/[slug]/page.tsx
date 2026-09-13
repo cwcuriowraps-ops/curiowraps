@@ -17,6 +17,7 @@ import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useBuyNowStore } from "@/store/useBuyNowStore";
 import { useCartUIStore } from "@/store/useCartUIStore";
+import { useGuestCartStore } from "@/store/useGuestCartStore";
 
 export default function ProductDetailsPage() {
   const { slug } = useParams() as { slug: string };
@@ -47,6 +48,7 @@ export default function ProductDetailsPage() {
   const { data: cartData } = useCart();
   const { openCart, closeCart, setNewlyAddedVariantId } = useCartUIStore();
   const setBuyNowItem = useBuyNowStore((state) => state.setItem);
+  const addGuestCartItem = useGuestCartStore((state) => state.addItem);
 
   const product = data?.product;
   const productId = product?.id;
@@ -113,6 +115,30 @@ export default function ProductDetailsPage() {
       return;
     }
 
+    if (!user) {
+      addGuestCartItem({
+        productId: product.id,
+        variantId: activeVariant.id,
+        quantity,
+        customization: customization.trim() || undefined,
+        productSnapshot: {
+          name: product.name,
+          slug: product.slug,
+          image: images[0],
+          variantTitle: activeVariant.title || activeVariant.name,
+        },
+      });
+
+      addToast({
+        title: "Saved to cart",
+        description: "Please sign in to complete your purchase. Your item has been saved.",
+        type: "success",
+      });
+
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/products/${slug}`)}`);
+      return;
+    }
+
     const isItemInCart = cartData?.cart?.items?.some((item: any) => item.variantId === activeVariant.id);
 
     addToCart.mutate(
@@ -158,16 +184,6 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    if (!user) {
-      addToast({
-        title: "Sign in required",
-        description: "Please sign in or create an account to proceed to checkout.",
-        type: "info",
-      });
-      router.push(`/auth/login?redirect=/checkout?buyNow=true`);
-      return;
-    }
-
     setIsBuyingNow(true);
     try {
       setBuyNowItem({
@@ -184,6 +200,17 @@ export default function ProductDetailsPage() {
           price: activeVariant.price || product.basePrice,
         }
       });
+
+      if (!user) {
+        addToast({
+          title: "Sign in required",
+          description: "Please sign in or create an account to proceed to checkout.",
+          type: "info",
+        });
+        router.push(`/auth/login?redirect=${encodeURIComponent("/checkout?buyNow=true")}`);
+        return;
+      }
+
       router.push("/checkout?buyNow=true");
     } catch (error: any) {
       addToast({

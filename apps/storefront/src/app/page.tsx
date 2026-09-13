@@ -14,7 +14,7 @@ const fadeUp = {
   }),
 };
 
-import { useCategories, useCollections, useFeaturedProducts } from "@/api/products";
+import { useCategories, useFeaturedProducts } from "@/api/products";
 import { getImageUrl } from "@/lib/image-utils";
 
 const curioFeatures = [
@@ -27,7 +27,6 @@ const curioFeatures = [
 
 export default function HomePage() {
   const { data: catData, isLoading: catLoading } = useCategories();
-  const { data: collData, isLoading: _collLoading } = useCollections();
   const { data: prodData, isLoading: prodLoading } = useFeaturedProducts();
 
   const allCategories: any[] = catData?.categories || [];
@@ -37,7 +36,7 @@ export default function HomePage() {
     : [...featuredCategories, ...allCategories.filter((c: any) => !c.isFeatured)]
   ).slice(0, 4);
 
-  const collections = collData?.categories?.length ? collData.categories.slice(0, 3) : [];
+  const collections = featuredCategories.length > 0 ? featuredCategories.slice(0, 3) : allCategories.slice(0, 3);
   const products = prodData?.products?.length ? prodData.products.slice(0, 4) : [];
 
   return (

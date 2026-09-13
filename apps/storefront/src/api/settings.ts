@@ -9,6 +9,6 @@ export function usePublicSettings() {
       const response = await apiClient<{ data: { settings: Record<string, any> } }>("/settings");
       return response.data?.settings || {};
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 10,
   });
 }

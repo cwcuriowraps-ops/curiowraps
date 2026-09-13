@@ -1,4 +1,4 @@
-export const metadata = { title: "Our Story | Curio Wrap" };
+export const metadata = { title: "Our Story | Curio Wraps" };
 
 export default function AboutPage() {
   return (

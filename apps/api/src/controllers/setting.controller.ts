@@ -11,12 +11,25 @@ export interface SettingControllerDeps {
   cartService?: CartService;
 }
 
+let cachedSettingsMap: Record<string, any> | null = null;
+let settingsCacheExpiresAt = 0;
+
+export function invalidateSettingsCache() {
+  cachedSettingsMap = null;
+  settingsCacheExpiresAt = 0;
+}
+
 export function createSettingController(deps: SettingControllerDeps) {
   return {
     getAll: async (req: Request, res: Response) => {
       const keys = req.query.keys ? (req.query.keys as string).split(",") : [];
-      let settings;
       
+      // If requesting all settings or standard public set, serve from cache if fresh
+      if (keys.length === 0 && cachedSettingsMap && Date.now() < settingsCacheExpiresAt) {
+        return res.json({ success: true, data: { settings: cachedSettingsMap } });
+      }
+
+      let settings;
       if (keys.length > 0) {
         settings = await deps.settingRepository.findByKeys(keys);
       } else {
@@ -27,6 +40,11 @@ export function createSettingController(deps: SettingControllerDeps) {
         acc[setting.key] = setting.value;
         return acc;
       }, {} as Record<string, any>);
+
+      if (keys.length === 0) {
+        cachedSettingsMap = settingsMap;
+        settingsCacheExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes TTL
+      }
 
       res.json({ success: true, data: { settings: settingsMap } });
     },
@@ -46,7 +64,8 @@ export function createSettingController(deps: SettingControllerDeps) {
 
       await deps.settingRepository.bulkUpsert(formattedSettings, userId);
 
-      // Invalidate cart settings cache immediately so changes reflect instantly
+      // Invalidate settings cache immediately so changes reflect instantly
+      invalidateSettingsCache();
       deps.cartService?.invalidateSettingsCache?.();
 
       const updatedSettings = await deps.settingRepository.findAll();

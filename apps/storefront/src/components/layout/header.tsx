@@ -11,6 +11,7 @@ import { getImageUrl } from "@/lib/image-utils";
 import { sanitizeErrorMessage } from "@/lib/toast-utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartUIStore } from "@/store/useCartUIStore";
+import { useGuestCartStore } from "@/store/useGuestCartStore";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -31,7 +32,10 @@ export function Header() {
   const updateCartItem = useUpdateCartItem();
   const removeCartItem = useRemoveCartItem();
   const { data: wishlistData } = useWishlist();
-  const cartItemCount = cartData?.cart?.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0;
+  const guestCartCount = useGuestCartStore((state) => state.getItemCount());
+  const cartItemCount = user
+    ? (cartData?.cart?.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0)
+    : guestCartCount;
   const wishlistCount = wishlistData?.items?.length || 0;
 
   const isOpen = useCartUIStore((state) => state.isOpen);

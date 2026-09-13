@@ -1,4 +1,4 @@
-export const metadata = { title: "Terms & Conditions | Curio Wrap" };
+export const metadata = { title: "Terms & Conditions | Curio Wraps" };
 
 export default function TermsPage() {
   return (

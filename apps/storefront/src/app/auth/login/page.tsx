@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Button, Input, useToast } from "@dashboard/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { useLogin, useOAuthLogin } from "@/api/auth";
+import { GoogleAuthOverlay } from "@/components/auth/google-auth-overlay";
 import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 const loginSchema = z.object({
@@ -19,6 +21,9 @@ export default function LoginPage() {
   const { mutate: login, isPending } = useLogin();
   const { mutate: oauthLogin, isPending: isOAuthPending } = useOAuthLogin();
   const { addToast } = useToast();
+  const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false);
+
+  const isAuthOverlayOpen = isOAuthPending || isGoogleAuthenticating;
 
   const {
     register,
@@ -41,15 +46,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
-        {isOAuthPending && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-sm rounded-[24px]">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mb-3" />
-            <p className="text-sm font-medium text-text-primary">Authenticating with Google...</p>
-          </div>
-        )}
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "dummy"}>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
+      <GoogleAuthOverlay
+        open={isAuthOverlayOpen}
+        onClose={() => setIsGoogleAuthenticating(false)}
+      />
 
+      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
         <div className="flex flex-col items-center">
           <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
             Welcome back
@@ -63,25 +67,36 @@ export default function LoginPage() {
         </div>
 
         <div className="flex flex-col space-y-3 mt-8">
-          <div className="w-full flex justify-center [&>div]:w-full [&>div>div]:w-full">
+          <div 
+            className="w-full flex justify-center [&>div]:w-full [&>div>div]:w-full"
+            onClickCapture={() => setIsGoogleAuthenticating(true)}
+          >
             <GoogleLogin
+              click_listener={() => setIsGoogleAuthenticating(true)}
               onSuccess={(credentialResponse) => {
                 if (credentialResponse.credential) {
                   oauthLogin(
                     { provider: "GOOGLE", idToken: credentialResponse.credential },
                     {
                       onError: (error: any) => {
+                        setIsGoogleAuthenticating(false);
                         addToast({
                           title: "Google Login Failed",
                           description: sanitizeErrorMessage(error, "Could not sign in with Google. Please try again."),
                           type: "error",
                         });
                       },
+                      onSuccess: () => {
+                        setIsGoogleAuthenticating(false);
+                      },
                     }
                   );
+                } else {
+                  setIsGoogleAuthenticating(false);
                 }
               }}
               onError={() => {
+                setIsGoogleAuthenticating(false);
                 addToast({ title: "Google Login Failed", description: "Could not connect to Google", type: "error" });
               }}
               width="100%"
@@ -153,5 +168,6 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 }

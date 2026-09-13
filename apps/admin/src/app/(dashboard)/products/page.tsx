@@ -37,6 +37,7 @@ export default function ProductsPage() {
   };
 
   const { data, isLoading, isError, error, refetch } = useAdminProducts(queryParams);
+  const products = data?.data?.products ?? [];
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const { mutate: createProduct, isPending: _isCreating } = useCreateProduct();
   const { mutate: updateProduct, isPending: _isUpdating } = useUpdateProduct();
@@ -202,7 +203,7 @@ export default function ProductsPage() {
                     </Button>
                   </td>
                 </tr>
-              ) : data?.data?.products?.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <p className="text-text-primary">No products found</p>
@@ -210,7 +211,7 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               ) : (
-                data?.data?.products?.map((product: any) => (
+                products.map((product: any) => (
                   <tr key={product.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

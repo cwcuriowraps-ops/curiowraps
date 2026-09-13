@@ -135,6 +135,20 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     if (newAccessToken) {
       headers.Authorization = `Bearer ${newAccessToken}`;
       response = await fetch(url, { ...config, headers });
+    } else {
+      useAuthStore.getState().logout();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.assign("/login?expired=true");
+      }
+    }
+  }
+
+  // Reactive 403 interceptor: token may have stale role/permissions, attempt one refresh
+  if (response.status === 403 && !isAuthEndpoint && !skipAutoRefresh) {
+    const newAccessToken = await refreshAccessToken();
+    if (newAccessToken) {
+      headers.Authorization = `Bearer ${newAccessToken}`;
+      response = await fetch(url, { ...config, headers });
     }
   }
 

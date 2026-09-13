@@ -9,7 +9,9 @@ export const useAdminCategories = () => {
   return useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {
-      return apiClient<{ data: { categories: any[] } }>("/admin/categories");
+      return apiClient<{ data: { categories: any[] } }>("/admin/categories", {
+        params: { includeInactive: true },
+      });
     },
     enabled: Boolean((_hasHydrated ?? true) && token),
     staleTime: 60 * 1000,

@@ -103,6 +103,20 @@ export class InventoryService {
     return inv;
   }
 
+  async directCommitInventory(variantId: string, locationId: string, quantity: number, referenceId: string, tx: any) {
+    const inv = await this.inventoryRepository.directCommitInventory(variantId, locationId, quantity, tx);
+    await this.inventoryRepository.recordMovement({
+      variantId,
+      locationId,
+      type: "SALE",
+      quantity: -quantity,
+      referenceType: "ORDER",
+      referenceId,
+      note: "Inventory committed directly at checkout",
+    }, tx);
+    return inv;
+  }
+
   async releaseInventory(variantId: string, locationId: string, quantity: number, referenceId: string, tx: any) {
     const inv = await this.inventoryRepository.releaseInventory(variantId, locationId, quantity, tx);
     return inv;

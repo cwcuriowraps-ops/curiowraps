@@ -30,6 +30,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search.trim(), 300);
   const { data, isLoading, isError, error, refetch } = useAdminOrders({ page, limit: 15, search: debouncedSearch || undefined });
+  const orders = data?.data?.orders ?? [];
   const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateOrderStatus();
   const { mutateAsync: updatePaymentStatus, isPending: isUpdatingPayment } = useUpdateOrderPaymentStatus();
   const { mutateAsync: deleteOrder, isPending: isDeleting } = useDeleteOrder();
@@ -173,32 +174,37 @@ export default function OrdersPage() {
                     </Button>
                   </td>
                 </tr>
-              ) : data?.data?.orders?.length === 0 ? (
+              ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-text-secondary">No orders found</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-text-secondary">
+                    <p className="text-base font-medium text-text-primary">No orders found</p>
+                    <p className="mt-1 text-xs text-text-secondary">When customers place orders, they will appear here.</p>
+                  </td>
                 </tr>
               ) : (
-                data?.data?.orders?.map((order: any) => (
+                orders.map((order: any) => (
                   <tr key={order.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4 font-medium font-mono text-xs text-text-primary">
-                      {order.id.slice(0, 8).toUpperCase()}
+                      {order.orderNumber || order.id.slice(0, 8).toUpperCase()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {format(new Date(order.createdAt), "MMM d, yyyy HH:mm")}
+                      {order.createdAt ? format(new Date(order.createdAt), "MMM d, yyyy HH:mm") : "-"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-text-primary">{order.user?.firstName} {order.user?.lastName}</span>
+                        <span className="font-medium text-text-primary">
+                          {order.user ? `${order.user.firstName || ""} ${order.user.lastName || ""}`.trim() || "Customer" : "Guest Customer"}
+                        </span>
                         {order.items?.some((item: any) => item.customization) && (
                           <span className="text-[10px] font-semibold bg-accent/15 text-accent px-1.5 py-0.5 rounded border border-accent/20">
                             Customized
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-text-secondary">{order.user?.email}</div>
+                      <div className="text-xs text-text-secondary">{order.user?.email || "No email available"}</div>
                     </td>
                     <td className="px-6 py-4 font-bold text-text-primary">
-                      ₹{order.grandTotal}
+                      ₹{order.grandTotal ? Number(order.grandTotal).toLocaleString("en-IN") : "0"}
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant={order.paymentStatus === "PAID" ? "success" : "warning"}>

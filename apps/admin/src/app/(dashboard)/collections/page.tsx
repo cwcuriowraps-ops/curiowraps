@@ -22,6 +22,7 @@ const brandSchema = z.object({
 
 export default function CollectionsPage() {
   const { data, isLoading, isError, error, refetch } = useAdminBrands();
+  const brands = data?.data?.brands ?? [];
   const { mutate: deleteBrand, isPending: _isDeleting } = useDeleteBrand();
   const { mutate: createBrand, isPending: isCreating } = useCreateBrand();
   const { mutate: updateBrand, isPending: isUpdating } = useUpdateBrand();
@@ -164,12 +165,15 @@ export default function CollectionsPage() {
                   </Button>
                 </td>
               </tr>
-            ) : data?.data?.brands?.length === 0 ? (
+            ) : brands.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-text-secondary">No collections found</td>
+                <td colSpan={4} className="px-6 py-12 text-center text-text-secondary">
+                  <p className="text-base font-medium text-text-primary">No collections found</p>
+                  <p className="mt-1 text-xs text-text-secondary">Get started by creating your first collection.</p>
+                </td>
               </tr>
             ) : (
-              data?.data?.brands?.map((brand: any) => (
+              brands.map((brand: any) => (
                 <tr key={brand.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-text-primary flex items-center gap-3">
                     {brand.logoUrl ? (

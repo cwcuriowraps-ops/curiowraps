@@ -37,6 +37,13 @@ export default function LoginPage() {
           type: "warning",
         });
         window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (params.get("unauthorized") === "true") {
+        addToast({
+          title: "Access Denied 🔒",
+          description: "You do not have administrative privileges. Please log in with an admin account.",
+          type: "error",
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }, [addToast]);

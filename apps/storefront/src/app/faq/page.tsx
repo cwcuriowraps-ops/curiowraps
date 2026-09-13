@@ -4,7 +4,7 @@ import { FAQAccordion } from "@/components/faq/FAQAccordion";
 import { FAQS } from "@/data/faqs";
 
 export const metadata: Metadata = {
-  title: "Frequently Asked Questions (FAQ) | Curio Wrap",
+  title: "Frequently Asked Questions (FAQ) | Curio Wraps",
   description:
     "Find answers to common questions about Curio Wrap products, custom colors, personalized gift messages, payment options, COD, shipping, and bulk orders.",
 };

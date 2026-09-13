@@ -3,10 +3,60 @@ import { useRouter } from "next/navigation";
 
 import { apiClient } from "../lib/api-client";
 import { useAuthStore } from "../store/useAuthStore";
+import { useBuyNowStore } from "../store/useBuyNowStore";
+import { useGuestCartStore } from "../store/useGuestCartStore";
+
+async function syncGuestCartAndRedirect(
+  router: any,
+  queryClient: any,
+  token: string,
+  searchParams?: URLSearchParams | null
+) {
+  // 1. Synchronize guest cart if items exist
+  const guestCart = useGuestCartStore.getState();
+  if (guestCart.items && guestCart.items.length > 0) {
+    try {
+      for (const item of guestCart.items) {
+        await apiClient("/cart/items", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            variantId: item.variantId,
+            quantity: item.quantity,
+            customization: item.customization,
+          }),
+        });
+      }
+      guestCart.clearCart();
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    } catch (err) {
+      console.error("Failed to synchronize guest cart:", err);
+    }
+  }
+
+  // 2. Check intended redirect destination
+  const redirectParam =
+    searchParams?.get?.("redirect") ||
+    (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null);
+  const buyNowItem = useBuyNowStore.getState().item;
+
+  if (redirectParam && redirectParam.includes("buyNow=true") && buyNowItem) {
+    router.push("/checkout?buyNow=true");
+    return;
+  }
+
+  if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("/auth")) {
+    router.push(redirectParam);
+    return;
+  }
+
+  router.push("/account");
+}
 
 export const useLogin = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (credentials: any) => {
@@ -21,10 +71,10 @@ export const useLogin = () => {
         refreshToken: authData?.refreshToken,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.accessToken && data.user) {
         setAuth(data.accessToken, data.user, data.refreshToken);
-        router.push("/account");
+        await syncGuestCartAndRedirect(router, queryClient, data.accessToken);
       }
     },
   });
@@ -33,6 +83,7 @@ export const useLogin = () => {
 export const useRegister = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (userData: any) => {
@@ -47,10 +98,10 @@ export const useRegister = () => {
         refreshToken: authData?.refreshToken,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.accessToken && data.user) {
         setAuth(data.accessToken, data.user, data.refreshToken);
-        router.push("/account");
+        await syncGuestCartAndRedirect(router, queryClient, data.accessToken);
       }
     },
   });
@@ -59,6 +110,7 @@ export const useRegister = () => {
 export const useOAuthLogin = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ provider, idToken }: { provider: "GOOGLE" | "APPLE"; idToken: string }) => {
@@ -73,10 +125,10 @@ export const useOAuthLogin = () => {
         refreshToken: authData?.refreshToken,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.accessToken && data.user) {
         setAuth(data.accessToken, data.user, data.refreshToken);
-        router.push("/account");
+        await syncGuestCartAndRedirect(router, queryClient, data.accessToken);
       }
     },
   });

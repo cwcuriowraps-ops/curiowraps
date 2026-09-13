@@ -52,6 +52,7 @@ export class OrderRepository {
               amount: true,
             },
           },
+          shippingAddress: true,
         },
       }),
       this.prisma.order.count({ where }),
@@ -67,6 +68,8 @@ export class OrderRepository {
         items: true,
         user: true,
         payments: true,
+        shippingAddress: true,
+        billingAddress: true,
       },
     });
   }

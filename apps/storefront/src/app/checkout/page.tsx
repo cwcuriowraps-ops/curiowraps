@@ -2,11 +2,12 @@
 
 import { Button, Input, useToast } from "@dashboard/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, QrCode, Tag, X, Info } from "lucide-react";
+import { Check, Copy, QrCode, Tag, X, Info, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { useAddresses } from "@/api/addresses";
 import { useCart } from "@/api/cart";
 import { useValidateCoupon } from "@/api/coupons";
 import { useCreateOrder } from "@/api/orders";
@@ -19,6 +20,9 @@ import { useBuyNowStore } from "@/store/useBuyNowStore";
 function CheckoutContent() {
   const { user } = useAuthStore();
   const { data, isLoading, isFetching } = useCart();
+  const { data: addressesData } = useAddresses();
+  const addresses: any[] = Array.isArray(addressesData) ? addressesData : (addressesData?.data || []);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "new">("new");
   const { data: settings } = usePublicSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,6 +50,13 @@ function CheckoutContent() {
   const validateCoupon = useValidateCoupon();
 
   const { register, handleSubmit } = useForm();
+
+  useEffect(() => {
+    if (addresses.length > 0 && selectedAddressId === "new") {
+      const defaultAddr = addresses.find((a: any) => a.isDefaultShipping) || addresses[0];
+      setSelectedAddressId(defaultAddr.id);
+    }
+  }, [addresses]);
 
   useEffect(() => {
     if (!user) {
@@ -198,22 +209,63 @@ function CheckoutContent() {
     setIsSubmitting(true);
     setCheckoutError("");
     try {
-      const shippingAddress = {
-        firstName: values.firstName?.trim() || "",
-        lastName: values.lastName?.trim() || "",
-        line1: values.address?.trim() || "",
-        city: values.city?.trim() || "",
-        postalCode: values.postalCode?.trim() || "",
-      };
+      let shippingAddress: any = null;
+      let shippingAddressId: string | undefined = undefined;
 
-      if (Object.values(shippingAddress).some((value) => !value)) {
-        setCheckoutError("Please fill out all required shipping address fields.");
-        return;
+      if (selectedAddressId !== "new" && addresses.length > 0) {
+        const chosen = addresses.find((a: any) => a.id === selectedAddressId);
+        if (chosen) {
+          shippingAddressId = chosen.id;
+          shippingAddress = {
+            recipientName: chosen.recipientName,
+            firstName: chosen.recipientName.split(" ")[0] || "",
+            lastName: chosen.recipientName.split(" ").slice(1).join(" ") || "",
+            phone: chosen.phone,
+            line1: chosen.line1,
+            line2: chosen.line2 || "",
+            city: chosen.city,
+            state: chosen.state,
+            postalCode: chosen.postalCode,
+            country: chosen.country || "India",
+          };
+        }
+      }
+
+      if (!shippingAddress) {
+        const firstName = values.firstName?.trim() || "";
+        const lastName = values.lastName?.trim() || "";
+        const phone = values.phone?.trim() || "";
+        const line1 = values.address?.trim() || "";
+        const line2 = values.line2?.trim() || "";
+        const city = values.city?.trim() || "";
+        const state = values.state?.trim() || "";
+        const postalCode = values.postalCode?.trim() || "";
+        const country = values.country?.trim() || "India";
+
+        if (!firstName || !line1 || !city || !state || !postalCode || !phone) {
+          setCheckoutError("Please fill out all required shipping address fields (Name, Phone, Address, City, State, PIN code).");
+          setIsSubmitting(false);
+          return;
+        }
+
+        shippingAddress = {
+          recipientName: `${firstName} ${lastName}`.trim(),
+          firstName,
+          lastName,
+          phone,
+          line1,
+          line2,
+          city,
+          state,
+          postalCode,
+          country,
+        };
       }
 
       // 1. Prepare order payload
       const orderPayload: any = {
         paymentMethod,
+        shippingAddressId,
         shippingAddress,
         couponCode: appliedCoupon?.code || undefined,
         notes: "Created from Storefront Checkout",
@@ -250,15 +302,21 @@ function CheckoutContent() {
         useBuyNowStore.getState().clearItem();
       }
 
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
       if (paymentMethod === "COD") {
-        // 2. COD flow
-        await createCodPayment.mutateAsync(order.id);
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        // Order is atomically confirmed in createOrderFromCart!
         router.push("/checkout/success");
       } else {
-        // 2. Manual UPI flow
-        await createUpiPayment.mutateAsync({ orderId: order.id, upiTransactionId: upiTransactionId.trim() });
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        // Manual UPI flow: record transaction in payment service if needed
+        if (upiTransactionId.trim()) {
+          try {
+            await createUpiPayment.mutateAsync({ orderId: order.id, upiTransactionId: upiTransactionId.trim() });
+          } catch (e) {
+            // Already recorded during order creation
+          }
+        }
         router.push("/checkout/success");
       }
     } catch (error: any) {
@@ -291,16 +349,104 @@ function CheckoutContent() {
               </div>
 
               <div className="mb-12 border-t border-border pt-12">
-                <h2 className="text-2xl font-serif text-text-primary mb-6">Shipping Details</h2>
-                <div className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-                  <Input label="First name" {...register("firstName")} defaultValue={user.firstName} className="rounded-xl" />
-                  <Input label="Last name" {...register("lastName")} defaultValue={user.lastName} className="rounded-xl" />
-                  <div className="sm:col-span-2">
-                    <Input label="Address" {...register("address")} className="rounded-xl" />
-                  </div>
-                  <Input label="City" {...register("city")} className="rounded-xl" />
-                  <Input label="Postal code" {...register("postalCode")} className="rounded-xl" />
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-serif text-text-primary">Shipping Details</h2>
+                  {addresses.length > 0 && selectedAddressId !== "new" && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAddressId("new")}
+                      className="text-sm text-accent hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <Plus className="w-4 h-4" /> Add new address
+                    </button>
+                  )}
                 </div>
+
+                {/* Saved addresses selector */}
+                {addresses.length > 0 && (
+                  <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {addresses.map((addr: any) => (
+                      <div
+                        key={addr.id}
+                        onClick={() => setSelectedAddressId(addr.id)}
+                        className={`p-4 rounded-xl border text-sm cursor-pointer transition-all ${
+                          selectedAddressId === addr.id
+                            ? "border-accent bg-accent/5 ring-1 ring-accent"
+                            : "border-border hover:border-accent/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-medium text-text-primary">
+                          <span>{addr.recipientName}</span>
+                          {addr.isDefaultShipping && (
+                            <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        {addr.phone && <div className="text-xs text-text-secondary mt-0.5">📞 {addr.phone}</div>}
+                        <div className="text-xs text-text-secondary mt-1 line-clamp-2">
+                          {addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} {addr.postalCode}
+                        </div>
+                      </div>
+                    ))}
+                    <div
+                      onClick={() => setSelectedAddressId("new")}
+                      className={`p-4 rounded-xl border text-sm cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                        selectedAddressId === "new"
+                          ? "border-accent bg-accent/5 ring-1 ring-accent text-accent font-medium"
+                          : "border-dashed border-border hover:border-accent/50 text-text-secondary"
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" /> Enter a different address
+                    </div>
+                  </div>
+                )}
+
+                {/* New address form */}
+                {(selectedAddressId === "new" || addresses.length === 0) && (
+                  <div className="mt-4 grid grid-cols-1 gap-y-5 sm:grid-cols-2 sm:gap-x-4 bg-surface/50 p-5 rounded-2xl border border-border">
+                    <Input
+                      label="First name *"
+                      {...register("firstName")}
+                      defaultValue={user.firstName}
+                      className="rounded-xl"
+                    />
+                    <Input
+                      label="Last name *"
+                      {...register("lastName")}
+                      defaultValue={user.lastName}
+                      className="rounded-xl"
+                    />
+                    <div className="sm:col-span-2">
+                      <Input
+                        label="Phone number * (for delivery updates)"
+                        type="tel"
+                        {...register("phone")}
+                        defaultValue={user.phone || ""}
+                        placeholder="e.g. +91 9876543210"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Input
+                        label="Address line 1 (Flat, House no., Building, Street) *"
+                        {...register("address")}
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Input
+                        label="Address line 2 (Area, Colony, Landmark - Optional)"
+                        {...register("line2")}
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <Input label="City *" {...register("city")} className="rounded-xl" />
+                    <Input label="State *" {...register("state")} defaultValue="Maharashtra" className="rounded-xl" />
+                    <Input label="PIN code *" {...register("postalCode")} className="rounded-xl" />
+                    <Input label="Country" {...register("country")} defaultValue="India" disabled className="rounded-xl" />
+                  </div>
+                )}
               </div>
 
               <div className="mb-12 border-t border-border pt-12">

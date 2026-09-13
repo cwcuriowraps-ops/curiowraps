@@ -14,16 +14,18 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Admin — Curio Wrap",
-    default: "Admin Dashboard — Curio Wrap",
+    template: "%s | Admin — Curio Wraps",
+    default: "Admin Dashboard — Curio Wraps",
   },
-  description: "Curio Wrap admin dashboard for business management",
+  description: "Curio Wraps admin dashboard for business management",
   icons: {
     icon: [
+      { url: "/favicon.ico" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],

@@ -28,17 +28,34 @@ export class OrderService {
   }
 
   async getAllOrders(options?: { page?: number; limit?: number; search?: string }) {
-    return this.orderRepository.findAll(options);
+    const result = await this.orderRepository.findAll(options);
+    return {
+      ...result,
+      orders: result.orders.map((o: any) => ({
+        ...o,
+        shippingAddress: o.shippingAddress || o.shippingAddressSnapshot || null,
+        billingAddress: o.billingAddress || o.billingAddressSnapshot || o.shippingAddress || o.shippingAddressSnapshot || null,
+      })),
+    };
   }
 
   async getOrderById(id: string) {
     const order = await this.orderRepository.findById(id);
     if (!order) throw new AppError(404, "NOT_FOUND", "Order not found");
-    return order;
+    return {
+      ...order,
+      shippingAddress: order.shippingAddress || order.shippingAddressSnapshot || null,
+      billingAddress: order.billingAddress || order.billingAddressSnapshot || order.shippingAddress || order.shippingAddressSnapshot || null,
+    };
   }
 
   async getMyOrders(userId: string) {
-    return this.orderRepository.findByUserId(userId);
+    const orders = await this.orderRepository.findByUserId(userId);
+    return orders.map((o: any) => ({
+      ...o,
+      shippingAddress: o.shippingAddress || o.shippingAddressSnapshot || null,
+      billingAddress: o.billingAddress || o.billingAddressSnapshot || o.shippingAddress || o.shippingAddressSnapshot || null,
+    }));
   }
 
   async createOrderFromCart(data: any, actorUserId: string, context: any) {
@@ -111,13 +128,55 @@ export class OrderService {
       },
     }));
 
+    let shippingAddressSnapshot = data.shippingAddress;
+    let shippingAddressId = data.shippingAddressId ? String(data.shippingAddressId) : undefined;
+
+    if (shippingAddressId) {
+      const savedAddr = await this.prisma.address.findFirst({
+        where: { id: shippingAddressId, userId: actorUserId, deletedAt: null },
+      });
+      if (savedAddr) {
+        if (!shippingAddressSnapshot) {
+          shippingAddressSnapshot = {
+            recipientName: savedAddr.recipientName,
+            phone: savedAddr.phone,
+            line1: savedAddr.line1,
+            line2: savedAddr.line2,
+            city: savedAddr.city,
+            state: savedAddr.state,
+            postalCode: savedAddr.postalCode,
+            country: savedAddr.country,
+          };
+        }
+      } else {
+        shippingAddressId = undefined;
+      }
+    }
+
+    if (shippingAddressSnapshot && typeof shippingAddressSnapshot === "object") {
+      const recipientName =
+        shippingAddressSnapshot.recipientName ||
+        [shippingAddressSnapshot.firstName, shippingAddressSnapshot.lastName].filter(Boolean).join(" ") ||
+        "Customer";
+      shippingAddressSnapshot = {
+        ...shippingAddressSnapshot,
+        recipientName,
+        firstName: shippingAddressSnapshot.firstName || recipientName.split(" ")[0] || "",
+        lastName: shippingAddressSnapshot.lastName || recipientName.split(" ").slice(1).join(" ") || "",
+        country: shippingAddressSnapshot.country || "India",
+      };
+    }
+
     const upiTxId = data.paymentMethod === "UPI" && data.upiTransactionId ? String(data.upiTransactionId).trim() : undefined;
+    const isCod = data.paymentMethod === "COD";
+    const initialOrderStatus = isCod ? "CONFIRMED" : "PENDING";
+    const initialPaymentStatus = "PENDING";
 
     const orderData = {
       user: { connect: { id: actorUserId } },
       orderNumber: `CW-${Date.now()}-${randomUUID().slice(0, 8).toUpperCase()}`,
-      status: "PENDING",
-      paymentStatus: "PENDING",
+      status: initialOrderStatus,
+      paymentStatus: initialPaymentStatus,
       paymentMethod: data.paymentMethod,
       subtotal,
       taxTotal: tax,
@@ -125,8 +184,9 @@ export class OrderService {
       discountTotal: discountAmount,
       grandTotal,
       currency: "INR",
-      shippingAddressSnapshot: data.shippingAddress,
-      billingAddressSnapshot: data.billingAddress || data.shippingAddress,
+      ...(shippingAddressId ? { shippingAddress: { connect: { id: shippingAddressId } } } : {}),
+      shippingAddressSnapshot,
+      billingAddressSnapshot: data.billingAddress || shippingAddressSnapshot,
       notes: data.notes,
       couponId,
       items: {
@@ -145,21 +205,34 @@ export class OrderService {
 
     const locationId = await this.inventoryService.getDefaultLocationId();
 
-    // 4. Create Order and Reserve Inventory inside a Transaction
+    // 4. Create Order and Reserve/Commit Inventory inside a Transaction
     const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({ data: orderData as any, include: { items: true } });
+      const newOrder = await tx.order.create({
+        data: orderData as any,
+        include: {
+          items: true,
+          shippingAddress: true,
+          billingAddress: true,
+        },
+      });
 
       for (const item of cartItems) {
-        // Reserve inventory. Throws if out of stock, rolling back the transaction.
-        await this.inventoryService.reserveInventory(item.variant.id, locationId, item.quantity, tx);
+        if (isCod) {
+          await this.inventoryService.directCommitInventory(item.variant.id, locationId, item.quantity, newOrder.id, tx);
+        } else {
+          // Reserve inventory. Throws if out of stock, rolling back the transaction.
+          await this.inventoryService.reserveInventory(item.variant.id, locationId, item.quantity, tx);
+        }
       }
 
       return newOrder;
     }, { maxWait: 10000, timeout: 20000 });
 
-    // 5. Clear Cart (Non-transactional, safe to run after success) - ONLY if not a Buy Now order
+    // 5. Clear Cart (Non-transactional, async after success) - ONLY if not a Buy Now order
     if (!isBuyNow) {
-      await this.cartService.clearCartDirect(undefined, actorUserId);
+      this.cartService.clearCartDirect(undefined, actorUserId).catch((err) => {
+        console.error("Async clearCartDirect failed:", err);
+      });
     }
 
     // 6. Record Redemption if coupon used
@@ -180,19 +253,24 @@ export class OrderService {
       ]);
     }
 
-    await this.auditService.logAction({
+    // Non-blocking background notifications & audit
+    this.auditService.logAction({
       actorUserId,
       action: "CREATE",
       entityType: "Order",
       entityId: order.id,
       after: order as any,
       ...context,
-    });
+    }).catch((err) => console.error("Async audit log failed:", err));
 
     systemEvents.emit(EVENTS.ORDER_CREATED, order);
     invalidateDashboardStatsCache();
 
-    return order;
+    return {
+      ...order,
+      shippingAddress: order.shippingAddress || order.shippingAddressSnapshot || null,
+      billingAddress: order.billingAddress || order.billingAddressSnapshot || null,
+    };
   }
 
   async updateOrderPaymentStatus(id: string, newPaymentStatus: string, actorUserId: string, context: any) {

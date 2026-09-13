@@ -247,20 +247,32 @@ export default function OrderDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {order.shippingAddress ? (
-                <div className="text-sm text-text-secondary space-y-1">
-                  <div className="font-medium text-text-primary">
-                    {order.shippingAddress.firstName} {order.shippingAddress.lastName}
+              {(() => {
+                const shipping = order.shippingAddress || order.shippingAddressSnapshot;
+                if (!shipping) {
+                  return <p className="text-sm text-text-secondary italic">No shipping address provided</p>;
+                }
+                const name =
+                  shipping.recipientName ||
+                  [shipping.firstName, shipping.lastName].filter(Boolean).join(" ") ||
+                  "Recipient";
+                const cityStateZip = [shipping.city, shipping.state, shipping.postalCode].filter(Boolean).join(", ");
+
+                return (
+                  <div className="text-sm text-text-secondary space-y-1.5">
+                    <div className="font-semibold text-text-primary text-base">{name}</div>
+                    {shipping.phone && (
+                      <div className="text-xs font-medium text-accent flex items-center gap-1">
+                        <span>📞</span> <a href={`tel:${shipping.phone}`} className="hover:underline">{shipping.phone}</a>
+                      </div>
+                    )}
+                    <div className="text-text-primary">{shipping.line1}</div>
+                    {shipping.line2 && <div>{shipping.line2}</div>}
+                    {cityStateZip && <div>{cityStateZip}</div>}
+                    {shipping.country && <div className="text-xs uppercase tracking-wide text-text-secondary">{shipping.country}</div>}
                   </div>
-                  <div>{order.shippingAddress.line1}</div>
-                  {order.shippingAddress.line2 && <div>{order.shippingAddress.line2}</div>}
-                  <div>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</div>
-                  <div>{order.shippingAddress.country}</div>
-                  {order.shippingAddress.phone && <div className="mt-2">Phone: {order.shippingAddress.phone}</div>}
-                </div>
-              ) : (
-                <p className="text-sm text-text-secondary italic">No shipping address provided</p>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
 

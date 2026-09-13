@@ -19,8 +19,7 @@
   },
   "dependencies": {
     "@dashboard/config": "*",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.23.12"
+    "clsx": "^2.1.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",

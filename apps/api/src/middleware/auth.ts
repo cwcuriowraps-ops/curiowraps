@@ -17,6 +17,10 @@ function extractBearerToken(req: Request) {
     return header.slice(7).trim();
   }
 
+  if (typeof req.query.token === "string" && req.query.token.trim()) {
+    return req.query.token.trim();
+  }
+
   return undefined;
 }
 

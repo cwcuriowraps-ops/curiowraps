@@ -68,13 +68,13 @@ export class PaymentService {
       rawPayload: txId ? { upiTransactionId: txId } : undefined,
     });
 
-    await this.auditService.logAction({
+    this.auditService.logAction({
       action: "CREATE",
       entityType: "Payment",
       entityId: payment.id,
       actorUserId: userId,
       metadata: { method: "UPI", status: "PENDING" },
-    });
+    }).catch((err) => console.error("Async UPI payment audit log failed:", err));
 
     return payment;
   }
@@ -94,6 +94,28 @@ export class PaymentService {
     }
 
     const existingPayments = await this.paymentRepo.findByOrderId(orderId);
+    const existingCod = existingPayments.find((p) => p.provider === PaymentMethod.COD);
+
+    // Idempotent: If COD payment record already exists, return it immediately
+    if (existingCod) {
+      if (order.status === OrderStatus.PENDING) {
+        await this.paymentRepo.updateOrderPaymentStatus(order.id, PaymentStatus.PENDING, OrderStatus.CONFIRMED);
+      }
+      return existingCod;
+    }
+
+    // Idempotent: If order was already confirmed (e.g. directly in createOrderFromCart)
+    if (order.status === OrderStatus.CONFIRMED) {
+      const p = await this.paymentRepo.create({
+        orderId: order.id,
+        provider: PaymentMethod.COD,
+        amount: order.grandTotal,
+        currency: order.currency,
+        status: PaymentStatus.PENDING,
+      });
+      return p;
+    }
+
     for (const payment of existingPayments) {
       if (payment.status === PaymentStatus.PENDING) {
         await this.paymentRepo.updateStatus(payment.id, PaymentStatus.CANCELLED);
@@ -122,26 +144,27 @@ export class PaymentService {
       }
 
       return p;
-    });
+    }, { timeout: 20000, maxWait: 10000 });
 
-    await this.auditService.logAction({
+    this.auditService.logAction({
       action: "CREATE",
       entityType: "Payment",
       entityId: payment.id,
       actorUserId: userId,
       metadata: { method: "COD", status: "PENDING" },
-    });
+    }).catch((err) => console.error("Async COD payment audit log failed:", err));
 
     if (this.queueService) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (user) {
-        this.queueService.sendEmail("ORDER_CONFIRMATION", {
-          email: user.email,
-          firstName: user.firstName,
-          orderId: order.orderNumber,
-          total: order.grandTotal,
-        }).catch(console.error);
-      }
+      this.prisma.user.findUnique({ where: { id: userId } }).then((user) => {
+        if (user) {
+          this.queueService?.sendEmail("ORDER_CONFIRMATION", {
+            email: user.email,
+            firstName: user.firstName,
+            orderId: order.orderNumber,
+            total: order.grandTotal,
+          }).catch(console.error);
+        }
+      }).catch(console.error);
     }
 
     return payment;

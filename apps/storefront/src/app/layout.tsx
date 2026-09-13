@@ -25,30 +25,32 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: {
-    default: "Curio Wrap — Handmade with Love",
-    template: "%s | Curio Wrap",
+    default: "Curio Wraps",
+    template: "%s | Curio Wraps",
   },
   description:
     "Handcrafted pipe cleaner creations that bring smiles to everyday life. Cute, elegant, and minimal gifts.",
   openGraph: {
-    title: "Curio Wrap — Handmade with Love",
+    title: "Curio Wraps",
     description: "Handcrafted pipe cleaner creations that bring smiles to everyday life.",
     url: "https://curiowrap.com",
-    siteName: "Curio Wrap",
+    siteName: "Curio Wraps",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Curio Wrap — Handmade with Love",
+    title: "Curio Wraps",
     description: "Handcrafted pipe cleaner creations that bring smiles to everyday life.",
   },
   icons: {
     icon: [
+      { url: "/favicon.ico" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
