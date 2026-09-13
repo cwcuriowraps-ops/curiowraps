@@ -1,0 +1,36 @@
+# Dependencies
+**/node_modules/
+.pnp
+.pnp.js
+
+# Git and OS
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Build outputs
+**/dist/
+**/.next/
+**/out/
+**/build/
+*.tsbuildinfo
+.turbo/
+
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing & scratch
+scratch/
+docs/
+coverage/
+playwright-report/
+test-results/
+uploads/

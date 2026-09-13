@@ -20,6 +20,8 @@ RUN npm run build --workspace=@dashboard/api
 FROM base AS runner
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 api
+RUN mkdir -p /app/uploads && chown -R api:nodejs /app/uploads
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
