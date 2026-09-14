@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Button, Input, useToast } from "@dashboard/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import Link from "next/link";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { useRegister, useOAuthLogin } from "@/api/auth";
-import { GoogleAuthOverlay } from "@/components/auth/google-auth-overlay";
+import { GoogleAuthIndicator } from "@/components/auth/google-auth-indicator";
 import { sanitizeErrorMessage } from "@/lib/toast-utils";
 
 const registerSchema = z.object({
@@ -54,11 +54,6 @@ export default function RegisterPage() {
   return (
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "dummy"}>
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <GoogleAuthOverlay
-        open={isAuthOverlayOpen}
-        onClose={() => setIsGoogleAuthenticating(false)}
-      />
-
       <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
         <div className="flex flex-col items-center">
           <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
@@ -74,11 +69,21 @@ export default function RegisterPage() {
 
         <div className="flex flex-col space-y-3 mt-8">
           <div 
-            className="w-full flex justify-center [&>div]:w-full [&>div>div]:w-full"
-            onClickCapture={() => setIsGoogleAuthenticating(true)}
+            className={`w-full flex justify-center [&>div]:w-full [&>div>div]:w-full transition-opacity duration-200 ${
+              isAuthOverlayOpen ? "opacity-50 pointer-events-none cursor-not-allowed select-none" : ""
+            }`}
+            onClickCapture={() => {
+              if (!isAuthOverlayOpen) {
+                setIsGoogleAuthenticating(true);
+              }
+            }}
           >
             <GoogleLogin
-              click_listener={() => setIsGoogleAuthenticating(true)}
+              click_listener={() => {
+                if (!isAuthOverlayOpen) {
+                  setIsGoogleAuthenticating(true);
+                }
+              }}
               onSuccess={(credentialResponse) => {
                 if (credentialResponse.credential) {
                   oauthLogin(
@@ -111,6 +116,11 @@ export default function RegisterPage() {
               shape="pill"
             />
           </div>
+
+          <GoogleAuthIndicator
+            isLoading={isAuthOverlayOpen}
+            onCancel={() => setIsGoogleAuthenticating(false)}
+          />
         </div>
 
         <div className="relative mt-8">
