@@ -91,7 +91,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   const { params, skipAutoRefresh, ...customConfig } = options;
   
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  let url = `${API_URL}${cleanEndpoint}`;
+  const normalizedPath = cleanEndpoint.startsWith("/api/v1")
+    ? cleanEndpoint.substring("/api/v1".length)
+    : cleanEndpoint;
+  let url = `${API_URL}${normalizedPath}`;
   
   if (params) {
     const searchParams = new URLSearchParams();
@@ -102,11 +105,11 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     });
     const queryString = searchParams.toString();
     if (queryString) {
-      url += `?${queryString}`;
+      url += (url.includes("?") ? "&" : "?") + queryString;
     }
   }
 
-  const isAuthEndpoint = ["/auth/login", "/auth/refresh", "/auth/logout"].includes(endpoint);
+  const isAuthEndpoint = ["/auth/login", "/auth/refresh", "/auth/logout", "/auth/register"].includes(normalizedPath);
 
   // Proactive preemptive token refresh before sending request if token expires in < 60 seconds
   let currentToken = useAuthStore.getState().token;
