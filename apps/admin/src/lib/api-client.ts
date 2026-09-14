@@ -1,11 +1,15 @@
 import { useAuthStore } from "../store/useAuthStore";
 
-const getApiUrl = (): string => {
-  let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+export const getApiUrl = (rawUrl?: string): string => {
+  let url = rawUrl !== undefined ? rawUrl : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1");
   if (url.startsWith("NEXT_PUBLIC_API_URL=")) {
     url = url.substring("NEXT_PUBLIC_API_URL=".length);
   }
-  return url.replace(/\/+$/, "");
+  url = url.replace(/\/+$/, "");
+  if (!url.endsWith("/api/v1")) {
+    url += "/api/v1";
+  }
+  return url;
 };
 
 export const API_URL = getApiUrl();
@@ -86,7 +90,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, skipAutoRefresh, ...customConfig } = options;
   
-  let url = `${API_URL}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  let url = `${API_URL}${cleanEndpoint}`;
   
   if (params) {
     const searchParams = new URLSearchParams();
