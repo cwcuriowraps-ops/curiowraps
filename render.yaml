@@ -11,3 +11,9 @@ services:
         value: 4000
       - key: NODE_ENV
         value: production
+      - key: STOREFRONT_URL
+        value: https://curiowraps-storefront.vercel.app
+      - key: ADMIN_URL
+        value: https://curiowraps-admin.vercel.app
+      - key: CORS_ORIGINS
+        value: https://curiowraps-storefront.vercel.app,https://curiowraps-admin.vercel.app

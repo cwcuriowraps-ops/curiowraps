@@ -181,47 +181,82 @@ function createDependencies(overrides: Partial<ApiDependencies> = {}): ApiDepend
     };
 }
 
+const KNOWN_PRODUCTION_ORIGINS = [
+  "https://curiowraps-storefront.vercel.app",
+  "https://curiowraps-admin.vercel.app",
+];
+
+const VERCEL_PREVIEW_REGEX = /^https:\/\/curiowraps-(storefront|admin)(-[a-z0-9-]+)?\.vercel\.app$/i;
+
 export function createApp(overrides: Partial<ApiDependencies> = {}): Express {
   const deps = createDependencies(overrides);
   const app = express();
 
   app.disable("x-powered-by");
+
+  // Configure strict, secure CORS origin checking and preflight handling
+  const corsOptions: cors.CorsOptions = {
+    origin(origin, callback) {
+      // Server-to-server or non-browser requests (no Origin header)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const normalizedOrigin = origin.trim().replace(/\/+$/, "");
+
+      // 1. Exact match against configured CORS origins (STOREFRONT_URL, ADMIN_URL, or CORS_ORIGINS)
+      const isConfigured = deps.config.corsOrigins.some(
+        (allowed) => allowed.trim().replace(/\/+$/, "").toLowerCase() === normalizedOrigin.toLowerCase(),
+      );
+      if (isConfigured) {
+        return callback(null, true);
+      }
+
+      // 2. Exact match against storefrontUrl or adminUrl
+      if (
+        (deps.config.storefrontUrl && deps.config.storefrontUrl.trim().replace(/\/+$/, "").toLowerCase() === normalizedOrigin.toLowerCase()) ||
+        (deps.config.adminUrl && deps.config.adminUrl.trim().replace(/\/+$/, "").toLowerCase() === normalizedOrigin.toLowerCase())
+      ) {
+        return callback(null, true);
+      }
+
+      // 3. Match known production Storefront and Admin Vercel origins
+      const isKnownProduction = KNOWN_PRODUCTION_ORIGINS.some(
+        (allowed) => allowed.toLowerCase() === normalizedOrigin.toLowerCase(),
+      );
+      if (isKnownProduction || VERCEL_PREVIEW_REGEX.test(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      // 4. In development & test environments, permit local development hosts
+      if (deps.config.nodeEnv !== "production") {
+        try {
+          const parsed = new URL(normalizedOrigin);
+          if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+            return callback(null, true);
+          }
+        } catch {
+          // Ignore URL parse failures
+        }
+      }
+
+      // Reject disallowed origin cleanly without throwing 500 internal server error
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Set-Cookie"],
+    optionsSuccessStatus: 204,
+    maxAge: 86400,
+  };
+
+  // Mount CORS first so preflight OPTIONS and cross-origin headers apply to all routes & error responses
+  app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
+
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(compression());
   app.use(cookieParser());
-  
-  // Configure strict CORS origin checking
-  app.use(
-    cors({
-      origin(origin, callback) {
-        // Server-to-server or non-browser requests (no Origin header)
-        if (!origin) {
-          return callback(null, true);
-        }
-
-        // Exact match against configured CORS origins (STOREFRONT_URL, ADMIN_URL, or CORS_ORIGINS)
-        if (deps.config.corsOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
-        // In development & test environments, permit local development hosts
-        if (deps.config.nodeEnv !== "production") {
-          try {
-            const parsed = new URL(origin);
-            if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-              return callback(null, true);
-            }
-          } catch {
-            // Ignore URL parse failures
-          }
-        }
-
-        // Reject disallowed origin in production
-        return callback(new Error(`CORS error: Origin ${origin} is not allowed`));
-      },
-      credentials: true,
-    }),
-  );
 
   // Static uploads (bypasses rate limiting and body parsing)
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads"), {

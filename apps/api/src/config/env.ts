@@ -73,12 +73,17 @@ function validatePostgresUrl(value: string, label: string) {
   return trimmed;
 }
 
+export const DEFAULT_PRODUCTION_ORIGINS = [
+  "https://curiowraps-storefront.vercel.app",
+  "https://curiowraps-admin.vercel.app",
+];
+
 function parseCorsOrigins(rawOrigins: string | undefined, defaults: string[]) {
   if (!rawOrigins) {
-    return defaults;
+    return [...new Set(defaults.map((origin) => origin.trim().replace(/\/+$/, "")).filter(Boolean))];
   }
 
-  return [...new Set(rawOrigins.split(",").map((origin) => origin.trim()).filter(Boolean))];
+  return [...new Set(rawOrigins.split(",").map((origin) => origin.trim().replace(/\/+$/, "")).filter(Boolean))];
 }
 
 export function createApiConfig(env: typeof process.env = process.env): ApiConfig {
@@ -124,7 +129,11 @@ export function createApiConfig(env: typeof process.env = process.env): ApiConfi
       : undefined,
     storefrontUrl: parsed.STOREFRONT_URL,
     adminUrl: parsed.ADMIN_URL,
-    corsOrigins: parseCorsOrigins(parsed.CORS_ORIGINS, [parsed.STOREFRONT_URL, parsed.ADMIN_URL]),
+    corsOrigins: parseCorsOrigins(parsed.CORS_ORIGINS, [
+      parsed.STOREFRONT_URL,
+      parsed.ADMIN_URL,
+      ...DEFAULT_PRODUCTION_ORIGINS,
+    ]),
     logLevel: parsed.LOG_LEVEL,
     jwtAccessSecret: parsed.JWT_ACCESS_SECRET,
     jwtRefreshSecret: parsed.JWT_REFRESH_SECRET,
