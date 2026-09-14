@@ -51,7 +51,8 @@ export async function refreshAccessToken(): Promise<string | null> {
   refreshPromise = (async () => {
     try {
       const currentRefreshToken = useAuthStore.getState().refreshToken;
-      const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
+      const baseUrl = getApiUrl();
+      const refreshResponse = await fetch(`${baseUrl}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -94,7 +95,8 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   const normalizedPath = cleanEndpoint.startsWith("/api/v1")
     ? cleanEndpoint.substring("/api/v1".length)
     : cleanEndpoint;
-  let url = `${API_URL}${normalizedPath}`;
+  const baseUrl = getApiUrl();
+  let url = `${baseUrl}${normalizedPath}`;
   
   if (params) {
     const searchParams = new URLSearchParams();
