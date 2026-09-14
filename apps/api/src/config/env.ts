@@ -76,6 +76,8 @@ function validatePostgresUrl(value: string, label: string) {
 export const DEFAULT_PRODUCTION_ORIGINS = [
   "https://curiowraps-storefront.vercel.app",
   "https://curiowraps-admin.vercel.app",
+  "https://curiowraps.studio",
+  "https://www.curiowraps.studio",
 ];
 
 function parseCorsOrigins(rawOrigins: string | undefined, defaults: string[]) {

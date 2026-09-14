@@ -184,6 +184,8 @@ function createDependencies(overrides: Partial<ApiDependencies> = {}): ApiDepend
 const KNOWN_PRODUCTION_ORIGINS = [
   "https://curiowraps-storefront.vercel.app",
   "https://curiowraps-admin.vercel.app",
+  "https://curiowraps.studio",
+  "https://www.curiowraps.studio",
 ];
 
 const VERCEL_PREVIEW_REGEX = /^https:\/\/curiowraps-(storefront|admin)(-[a-z0-9-]+)?\.vercel\.app$/i;

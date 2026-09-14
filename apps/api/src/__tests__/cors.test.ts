@@ -82,6 +82,64 @@ describe("Production CORS & OPTIONS preflight suite", () => {
     expect(res.body.success).toBe(true);
   });
 
+  it("handles OPTIONS preflight from custom domain https://curiowraps.studio correctly", async () => {
+    const res = await request(app)
+      .options("/health")
+      .set("Origin", "https://curiowraps.studio")
+      .set("Access-Control-Request-Method", "GET")
+      .set("Access-Control-Request-Headers", "Content-Type, Authorization");
+
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://curiowraps.studio");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+    expect(res.headers["access-control-max-age"]).toBe("86400");
+  });
+
+  it("handles OPTIONS preflight from www custom domain https://www.curiowraps.studio correctly", async () => {
+    const res = await request(app)
+      .options("/health")
+      .set("Origin", "https://www.curiowraps.studio")
+      .set("Access-Control-Request-Method", "GET")
+      .set("Access-Control-Request-Headers", "Content-Type, Authorization");
+
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://www.curiowraps.studio");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+  });
+
+  it("handles OPTIONS preflight for /api/v1/auth/me from custom domain", async () => {
+    const res = await request(app)
+      .options("/api/v1/auth/me")
+      .set("Origin", "https://curiowraps.studio")
+      .set("Access-Control-Request-Method", "GET")
+      .set("Access-Control-Request-Headers", "Authorization, Content-Type");
+
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://curiowraps.studio");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+  });
+
+  it("includes CORS headers on regular GET /health request from custom domain", async () => {
+    const res = await request(app)
+      .get("/health")
+      .set("Origin", "https://curiowraps.studio");
+
+    expect(res.status).toBe(200);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://curiowraps.studio");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+    expect(res.body.success).toBe(true);
+  });
+
+  it("includes CORS headers on /api/v1/auth/me request from custom domain", async () => {
+    const res = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Origin", "https://curiowraps.studio");
+
+    // Even if unauthorized (401), CORS headers MUST be present!
+    expect(res.headers["access-control-allow-origin"]).toBe("https://curiowraps.studio");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+  });
+
   it("rejects unauthorized origins cleanly without returning 500 error", async () => {
     const res = await request(app)
       .options("/health")
