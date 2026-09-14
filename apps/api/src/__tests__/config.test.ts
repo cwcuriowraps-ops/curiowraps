@@ -26,6 +26,22 @@ describe("createApiConfig", () => {
       "https://admin.example.com",
     ]);
     expect(config.logLevel).toBe("warn");
+    expect(config.authCookieSameSite).toBe("none");
+    expect(config.authCookieSecure).toBe(true);
+  });
+
+  it("preserves explicit auth cookie settings", () => {
+    const config = createApiConfig({
+      NODE_ENV: "development",
+      PORT: "4000",
+      STOREFRONT_URL: "http://localhost:3000",
+      ADMIN_URL: "http://localhost:3001",
+      AUTH_COOKIE_SAMESITE: "lax",
+      AUTH_COOKIE_SECURE: "false",
+    });
+
+    expect(config.authCookieSameSite).toBe("lax");
+    expect(config.authCookieSecure).toBe(false);
   });
 
   it("rejects non-PostgreSQL connection strings", () => {

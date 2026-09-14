@@ -4,13 +4,15 @@ import { Button, Input, useToast } from "@dashboard/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { useLogin, useOAuthLogin } from "@/api/auth";
 import { GoogleAuthOverlay } from "@/components/auth/google-auth-overlay";
 import { sanitizeErrorMessage } from "@/lib/toast-utils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -18,10 +20,24 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { user, _hasHydrated } = useAuthStore();
   const { mutate: login, isPending } = useLogin();
   const { mutate: oauthLogin, isPending: isOAuthPending } = useOAuthLogin();
   const { addToast } = useToast();
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false);
+
+  useEffect(() => {
+    if (_hasHydrated && user) {
+      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const redirectParam = searchParams?.get("redirect");
+      if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("/auth")) {
+        router.replace(redirectParam);
+      } else {
+        router.replace("/account");
+      }
+    }
+  }, [user, _hasHydrated, router]);
 
   const isAuthOverlayOpen = isOAuthPending || isGoogleAuthenticating;
 

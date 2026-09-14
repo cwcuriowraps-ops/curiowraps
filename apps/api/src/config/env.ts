@@ -19,7 +19,7 @@ const runtimeEnvSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
   AUTH_COOKIE_NAME: z.string().default("refresh_token"),
   AUTH_COOKIE_PATH: z.string().default("/api/v1/auth"),
-  AUTH_COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
+  AUTH_COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).optional(),
   AUTH_COOKIE_SECURE: z.enum(["true", "false"]).optional(),
   AUTH_COOKIE_DOMAIN: z.string().optional(),
   BCRYPT_ROUNDS: z.coerce.number().int().min(8).max(14).default(12),
@@ -119,6 +119,13 @@ export function createApiConfig(env: typeof process.env = process.env): ApiConfi
     }
   }
 
+  const authCookieSameSite =
+    parsed.AUTH_COOKIE_SAMESITE ?? (parsed.NODE_ENV === "production" ? "none" : "lax");
+  const authCookieSecure =
+    parsed.AUTH_COOKIE_SECURE !== undefined
+      ? parsed.AUTH_COOKIE_SECURE === "true"
+      : parsed.NODE_ENV === "production" || authCookieSameSite === "none";
+
   return {
     name: appConfig.name,
     apiVersion: appConfig.apiVersion,
@@ -143,9 +150,8 @@ export function createApiConfig(env: typeof process.env = process.env): ApiConfi
     jwtRefreshExpiresIn: parsed.JWT_REFRESH_EXPIRES_IN,
     authCookieName: parsed.AUTH_COOKIE_NAME,
     authCookiePath: parsed.AUTH_COOKIE_PATH,
-    authCookieSameSite: parsed.AUTH_COOKIE_SAMESITE,
-    authCookieSecure:
-      parsed.AUTH_COOKIE_SECURE ? parsed.AUTH_COOKIE_SECURE === "true" : parsed.NODE_ENV === "production",
+    authCookieSameSite,
+    authCookieSecure,
     authCookieDomain: parsed.AUTH_COOKIE_DOMAIN,
     bcryptRounds: parsed.BCRYPT_ROUNDS,
     redisUrl: parsed.REDIS_URL,

@@ -41,16 +41,28 @@ async function syncGuestCartAndRedirect(
   const buyNowItem = useBuyNowStore.getState().item;
 
   if (redirectParam && redirectParam.includes("buyNow=true") && buyNowItem) {
-    router.push("/checkout?buyNow=true");
+    if (router?.replace) {
+      router.replace("/checkout?buyNow=true");
+    } else {
+      router.push("/checkout?buyNow=true");
+    }
     return;
   }
 
   if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("/auth")) {
-    router.push(redirectParam);
+    if (router?.replace) {
+      router.replace(redirectParam);
+    } else {
+      router.push(redirectParam);
+    }
     return;
   }
 
-  router.push("/account");
+  if (router?.replace) {
+    router.replace("/account");
+  } else {
+    router.push("/account");
+  }
 }
 
 export const useLogin = () => {

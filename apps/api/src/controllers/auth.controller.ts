@@ -95,7 +95,14 @@ export function createAuthController(deps: AuthControllerDeps) {
       });
 
       setRefreshCookie(res, result.tokens.refreshToken, result.tokens.refreshTokenExpiresAt, deps.config);
-      res.json({ success: true, data: { user: result.user, accessToken: result.tokens.accessToken } });
+      res.json({
+        success: true,
+        data: {
+          user: result.user,
+          accessToken: result.tokens.accessToken,
+          refreshToken: result.tokens.refreshToken,
+        },
+      });
     },
 
     forgotPassword: async (req: Request, res: Response) => {
