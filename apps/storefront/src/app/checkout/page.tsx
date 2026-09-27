@@ -313,7 +313,7 @@ function CheckoutContent() {
         if (upiTransactionId.trim()) {
           try {
             await createUpiPayment.mutateAsync({ orderId: order.id, upiTransactionId: upiTransactionId.trim() });
-          } catch (e) {
+          } catch {
             // Already recorded during order creation
           }
         }
@@ -335,22 +335,22 @@ function CheckoutContent() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-serif text-text-primary mb-12">Checkout</h1>
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:pt-16 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-4xl font-serif text-text-primary mb-6 sm:mb-12">Checkout</h1>
 
         <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
           <section className="lg:col-span-7">
             <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="mb-12">
-                <h2 className="text-2xl font-serif text-text-primary mb-6">Contact Information</h2>
+              <div className="mb-8 sm:mb-12">
+                <h2 className="text-xl sm:text-2xl font-serif text-text-primary mb-4 sm:mb-6">Contact Information</h2>
                 <div className="mt-4">
                   <Input label="Email address" type="email" defaultValue={user.email} disabled className="rounded-xl" />
                 </div>
               </div>
 
-              <div className="mb-12 border-t border-border pt-12">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-serif text-text-primary">Shipping Details</h2>
+              <div className="mb-8 sm:mb-12 border-t border-border pt-8 sm:pt-12">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-xl sm:text-2xl font-serif text-text-primary">Shipping Details</h2>
                   {addresses.length > 0 && selectedAddressId !== "new" && (
                     <button
                       type="button"
@@ -404,7 +404,7 @@ function CheckoutContent() {
 
                 {/* New address form */}
                 {(selectedAddressId === "new" || addresses.length === 0) && (
-                  <div className="mt-4 grid grid-cols-1 gap-y-5 sm:grid-cols-2 sm:gap-x-4 bg-surface/50 p-5 rounded-2xl border border-border">
+                  <div className="mt-4 grid grid-cols-1 gap-y-4 sm:gap-y-5 sm:grid-cols-2 sm:gap-x-4 bg-surface/50 p-3.5 sm:p-5 rounded-2xl border border-border">
                     <Input
                       label="First name *"
                       {...register("firstName")}
@@ -449,11 +449,11 @@ function CheckoutContent() {
                 )}
               </div>
 
-              <div className="mb-12 border-t border-border pt-12">
-                <h2 className="text-2xl font-serif text-text-primary mb-6">Payment Method</h2>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mb-8 sm:mb-12 border-t border-border pt-8 sm:pt-12">
+                <h2 className="text-xl sm:text-2xl font-serif text-text-primary mb-4 sm:mb-6">Payment Method</h2>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div
-                    className={`border p-6 rounded-2xl cursor-pointer transition-all ${paymentMethod === "UPI"
+                    className={`border p-4 sm:p-6 rounded-2xl cursor-pointer transition-all ${paymentMethod === "UPI"
                         ? "border-accent bg-accent/5 ring-1 ring-accent"
                         : "border-border hover:border-accent/50"
                       }`}
@@ -462,30 +462,30 @@ function CheckoutContent() {
                     <span className="font-medium text-text-primary flex items-center gap-2 mb-1">
                       <QrCode className="w-5 h-5 text-accent" /> UPI Payment
                     </span>
-                    <span className="text-sm text-text-secondary font-light">Scan QR or Pay via UPI ID</span>
+                    <span className="text-xs sm:text-sm text-text-secondary font-light">Scan QR or Pay via UPI ID</span>
                   </div>
 
                   <div
-                    className={`border p-6 rounded-2xl cursor-pointer transition-all ${paymentMethod === "COD"
+                    className={`border p-4 sm:p-6 rounded-2xl cursor-pointer transition-all ${paymentMethod === "COD"
                         ? "border-accent bg-accent/5 ring-1 ring-accent"
                         : "border-border hover:border-accent/50"
                       }`}
                     onClick={() => setPaymentMethod("COD")}
                   >
                     <span className="font-medium text-text-primary block mb-1">Cash on Delivery</span>
-                    <span className="text-sm text-text-secondary font-light">Pay when your order arrives</span>
+                    <span className="text-xs sm:text-sm text-text-secondary font-light">Pay when your order arrives</span>
                   </div>
                 </div>
 
                 {/* Manual UPI Display Box */}
                 {paymentMethod === "UPI" && (
-                  <div className="mt-6 rounded-2xl border border-accent/30 bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-border pb-4">
+                  <div className="mt-6 rounded-2xl border border-accent/30 bg-surface p-4 sm:p-8 space-y-4 sm:space-y-6 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-border pb-3 sm:pb-4 gap-2">
                       <div>
-                        <h3 className="font-serif text-lg font-semibold text-text-primary">Pay via UPI</h3>
-                        <p className="text-xs text-text-secondary">Google Pay, PhonePe, Paytm, BHIM or any UPI app</p>
+                        <h3 className="font-serif text-base sm:text-lg font-semibold text-text-primary">Pay via UPI</h3>
+                        <p className="text-[11px] sm:text-xs text-text-secondary">Google Pay, PhonePe, Paytm, BHIM or any UPI app</p>
                       </div>
-                      <span className="text-xs font-semibold px-3 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
+                      <span className="text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full bg-accent/10 text-accent border border-accent/20 shrink-0">
                         Total: ₹{finalTotal.toFixed(2)}
                       </span>
                     </div>
@@ -497,21 +497,21 @@ function CheckoutContent() {
                           <img
                             src={upiQrImageUrl}
                             alt="UPI QR Code"
-                            className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-2xl border border-border p-2 bg-white shadow-md transition-transform hover:scale-105"
+                            className="w-40 h-40 sm:w-56 sm:h-56 object-contain rounded-2xl border border-border p-2 bg-white shadow-md transition-transform hover:scale-105"
                           />
                         </div>
                       ) : (
-                        <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl border-2 border-dashed border-border bg-muted/40 flex flex-col items-center justify-center p-4 text-center">
-                          <QrCode className="w-12 h-12 text-text-secondary mb-2" />
+                        <div className="w-40 h-40 sm:w-56 sm:h-56 rounded-2xl border-2 border-dashed border-border bg-muted/40 flex flex-col items-center justify-center p-4 text-center">
+                          <QrCode className="w-10 h-10 sm:w-12 sm:h-12 text-text-secondary mb-2" />
                           <p className="text-xs text-text-secondary font-medium">QR Code image configured in Admin settings</p>
                         </div>
                       )}
 
                       {/* UPI ID display & copy button */}
-                      <div className="w-full max-w-sm space-y-2 pt-2">
-                        <p className="text-xs text-text-secondary font-medium uppercase tracking-wider">Store UPI ID</p>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border">
-                          <span className="font-mono text-sm font-bold text-text-primary truncate mr-2">{upiId}</span>
+                      <div className="w-full max-w-sm space-y-2 pt-1 sm:pt-2">
+                        <p className="text-[11px] sm:text-xs text-text-secondary font-medium uppercase tracking-wider">Store UPI ID</p>
+                        <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-background border border-border">
+                          <span className="font-mono text-xs sm:text-sm font-bold text-text-primary truncate mr-2">{upiId}</span>
                           <Button
                             type="button"
                             variant="outline"
@@ -593,8 +593,8 @@ function CheckoutContent() {
             </form>
           </section>
 
-          <section className="mt-16 rounded-2xl bg-surface p-6 sm:p-8 lg:col-span-5 lg:mt-0 border border-border">
-            <h2 className="text-2xl font-serif text-text-primary mb-6">Order Summary</h2>
+          <section className="mt-8 sm:mt-16 rounded-2xl bg-surface p-4 sm:p-8 lg:col-span-5 lg:mt-0 border border-border">
+            <h2 className="text-xl sm:text-2xl font-serif text-text-primary mb-4 sm:mb-6">Order Summary</h2>
 
             <div className="divide-y divide-border max-h-80 overflow-y-auto mb-6 pr-1">
               {items.map((item: any) => (
@@ -633,12 +633,14 @@ function CheckoutContent() {
 
               {!appliedCoupon ? (
                 <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                  <Input
-                    placeholder="Enter code (e.g. SAVE10)"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    className="rounded-xl text-sm"
-                  />
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      placeholder="Enter code (e.g. SAVE10)"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      className="rounded-xl text-sm w-full"
+                    />
+                  </div>
                   <Button
                     type="submit"
                     variant="outline"

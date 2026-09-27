@@ -32,7 +32,7 @@ export function BrandingForm({ defaultValues }: { defaultValues: any }) {
     defaultValues: {
       primaryTheme: defaultValues?.branding?.primaryTheme || "#e5b3c5",
       lightTheme: defaultValues?.branding?.lightTheme || "#ffffff",
-      darkTheme: defaultValues?.branding?.darkTheme || "#111111",
+      darkTheme: defaultValues?.branding?.darkTheme || "#000000",
       accentColor: defaultValues?.branding?.accentColor || "#e5b3c5",
       logoUrl: defaultValues?.branding?.logoUrl || "",
       faviconUrl: defaultValues?.branding?.faviconUrl || "",

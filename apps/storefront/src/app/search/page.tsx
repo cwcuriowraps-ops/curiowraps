@@ -20,10 +20,10 @@ function SearchContent() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <p className="text-sm font-medium tracking-[0.2em] text-accent uppercase mb-4">Search Results</p>
-          <h1 className="text-4xl font-serif text-text-primary">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-24 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-16">
+          <p className="text-xs sm:text-sm font-medium tracking-[0.2em] text-accent uppercase mb-2 sm:mb-4">Search Results</p>
+          <h1 className="text-2xl sm:text-4xl font-serif text-text-primary">
             {query ? `"${query}"` : "Search"}
           </h1>
         </div>
@@ -31,19 +31,19 @@ function SearchContent() {
         {!query && <p className="text-text-secondary text-center font-light">Please enter a search term.</p>}
         
         {isLoading && (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:gap-x-8">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:gap-x-8">
             {[1,2,3,4].map(i => <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-2xl" />)}
           </div>
         )}
 
         {query && !isLoading && data?.items?.length === 0 && (
-          <div className="py-24 text-center">
-            <h2 className="text-2xl font-serif text-text-primary mb-4">No creations found</h2>
-            <p className="text-text-secondary font-light">Try searching for something else or explore our collections.</p>
+          <div className="py-16 sm:py-24 text-center">
+            <h2 className="text-xl sm:text-2xl font-serif text-text-primary mb-3 sm:mb-4">No creations found</h2>
+            <p className="text-xs sm:text-sm text-text-secondary font-light">Try searching for something else or explore our collections.</p>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:gap-x-8">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:gap-x-8">
           {data?.items?.map((p: any, i: number) => (
             <motion.div
               key={p.id}
@@ -81,11 +81,11 @@ export default function SearchPage() {
   return (
     <Suspense fallback={
       <div className="bg-background min-h-screen">
-        <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="mx-auto h-10 w-48 bg-muted animate-pulse rounded-full" />
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:py-24 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="mx-auto h-8 sm:h-10 w-36 sm:w-48 bg-muted animate-pulse rounded-full" />
           </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:gap-x-8">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:gap-x-8">
             {[1,2,3,4].map(i => <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-2xl" />)}
           </div>
         </div>

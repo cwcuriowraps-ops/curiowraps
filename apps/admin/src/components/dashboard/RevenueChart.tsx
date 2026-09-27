@@ -18,11 +18,17 @@ export default function RevenueChart({ data }: RevenueChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} dy={10} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} dx={-10} tickFormatter={(val) => `₹${val}`} />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} dy={10} />
+        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} dx={-10} tickFormatter={(val) => `₹${val}`} />
         <Tooltip 
-          contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+          contentStyle={{
+            borderRadius: "8px",
+            border: "1px solid var(--color-border)",
+            backgroundColor: "var(--color-surface)",
+            color: "var(--color-text-primary)",
+            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+          }}
           formatter={(value: number) => [`₹${value}`, "Revenue"]}
         />
         <Line type="monotone" dataKey="revenue" stroke="#e5b3c5" strokeWidth={2} dot={{ r: 4, fill: "#e5b3c5" }} activeDot={{ r: 6 }} />

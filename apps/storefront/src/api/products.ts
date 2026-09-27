@@ -26,6 +26,17 @@ export interface Product {
   basePrice?: number;
 }
 
+export interface Collection {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  productCount: number;
+  href: string;
+  type: "brand" | "category";
+}
+
 // Normalized Fetchers (Unwraps backend { success: true, data: { ... } } structure)
 export const fetchCategories = async () => {
   const res = await apiClient<{ data?: { categories: Category[] }; categories?: Category[] }>("/categories");
@@ -33,8 +44,41 @@ export const fetchCategories = async () => {
 };
 
 export const fetchCollections = async () => {
-  const res = await apiClient<{ data?: { categories: Category[] }; categories?: Category[] }>("/categories?featured=true");
-  return { categories: res?.data?.categories || res?.categories || [] };
+  type BrandRes = { data?: { brands: any[] }; brands?: any[] };
+  type CatRes = { data?: { categories: any[] }; categories?: any[] };
+
+  const [brandsRes, catRes] = await Promise.all([
+    apiClient<BrandRes>("/brands").catch((): BrandRes => ({ data: { brands: [] } })),
+    apiClient<CatRes>("/categories?featured=true").catch((): CatRes => ({ data: { categories: [] } })),
+  ]);
+
+  const rawBrands = brandsRes?.data?.brands || brandsRes?.brands || [];
+  const rawCategories = catRes?.data?.categories || catRes?.categories || [];
+
+  const collections: Collection[] = [
+    ...rawBrands.map((b: any) => ({
+      id: b.id,
+      name: b.name,
+      slug: b.slug,
+      description: b.description,
+      imageUrl: b.logoUrl,
+      productCount: b._count?.products ?? b.products?.length ?? 0,
+      href: `/products?brand=${encodeURIComponent(b.slug)}`,
+      type: "brand" as const,
+    })),
+    ...rawCategories.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      imageUrl: c.imageUrl,
+      productCount: c._count?.products ?? c.products?.length ?? 0,
+      href: `/products?category=${encodeURIComponent(c.slug)}`,
+      type: "category" as const,
+    })),
+  ].filter((col) => col.productCount > 0);
+
+  return { collections, categories: collections };
 };
 
 export const fetchProducts = async (params?: Record<string, any>) => {

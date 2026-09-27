@@ -6,6 +6,7 @@ import { BrandRepository } from "../repositories/brand.repository";
 import { ProductRepository } from "../repositories/product.repository";
 
 import { AuditService } from "./audit.service";
+import { invalidateBrandsMemoryCache } from "./brand.service";
 import { RedisService } from "./redis.service";
 
 export class ProductService {
@@ -244,6 +245,7 @@ export class ProductService {
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
     invalidateDashboardStatsCache();
+    invalidateBrandsMemoryCache();
 
     return product;
   }
@@ -292,6 +294,7 @@ export class ProductService {
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
     invalidateDashboardStatsCache();
+    invalidateBrandsMemoryCache();
 
     return updatedProduct;
   }
@@ -314,6 +317,7 @@ export class ProductService {
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
     invalidateDashboardStatsCache();
+    invalidateBrandsMemoryCache();
   }
 
   async restoreProduct(id: string, actorUserId: string, context: any) {
@@ -333,5 +337,6 @@ export class ProductService {
     await this.redisService.invalidatePattern(`product:*`);
     await this.redisService.invalidatePattern(`products:*`);
     invalidateDashboardStatsCache();
+    invalidateBrandsMemoryCache();
   }
 }

@@ -63,23 +63,23 @@ export default function ContactPage() {
 
   return (
     <div className="bg-background min-h-[70vh]">
-      <div className="mx-auto max-w-2xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 space-y-4">
-          <h1 className="text-4xl font-serif text-text-primary">Contact Us</h1>
-          <p className="text-text-secondary font-light max-w-lg mx-auto leading-relaxed">
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:py-20 sm:px-6 lg:px-8">
+        <div className="text-center mb-6 sm:mb-10 space-y-3 sm:space-y-4">
+          <h1 className="text-2xl sm:text-4xl font-serif text-text-primary">Contact Us</h1>
+          <p className="text-xs sm:text-base text-text-secondary font-light max-w-lg mx-auto leading-relaxed">
             For assistance, DM us on Instagram or fill out the contact form below. We&apos;ll get back to you as soon as possible.
           </p>
 
           {/* Support Channels CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 max-w-xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 sm:pt-3 max-w-xl mx-auto">
             {/* Prominent Instagram DM CTA */}
             <a
               href="https://www.instagram.com/curio.wraps/"
               target="_blank"
               rel="noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-accent text-white font-medium shadow-md hover:bg-accent/90 transition-all hover:scale-[1.02] active:scale-[0.98] text-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-accent text-white font-medium shadow-md hover:bg-accent/90 transition-all hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-sm"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
                 <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -90,9 +90,9 @@ export default function ContactPage() {
             {/* Email Contact (Relocated from Footer) */}
             <a
               href="mailto:cw.curiowraps@gmail.com"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-surface border border-border text-text-primary hover:border-accent hover:text-accent font-medium transition-all text-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-surface border border-border text-text-primary hover:border-accent hover:text-accent font-medium transition-all text-xs sm:text-sm"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
@@ -101,7 +101,7 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-surface p-8 sm:p-10 rounded-2xl border border-border shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 bg-surface p-4 sm:p-8 md:p-10 rounded-2xl border border-border shadow-sm">
           <div>
             <label className="block text-sm font-medium mb-2 text-text-primary">
               Name <span className="text-red-500">*</span>

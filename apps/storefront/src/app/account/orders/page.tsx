@@ -152,10 +152,10 @@ export default function OrdersPage() {
   const orders = data?.orders || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-serif text-text-primary">Order History</h1>
-        <p className="text-sm text-text-secondary font-light mt-1">
+        <h1 className="text-2xl sm:text-3xl font-serif text-text-primary">Order History</h1>
+        <p className="text-xs sm:text-sm text-text-secondary font-light mt-1">
           View and track your recent purchases at Curio Wrap.
         </p>
       </div>
@@ -189,7 +189,7 @@ export default function OrdersPage() {
               >
                 {/* Order Summary Header */}
                 <div
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-6 gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 gap-3 sm:gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => toggleExpand(order.id)}
                 >
                   <div className="space-y-1">
@@ -223,7 +223,7 @@ export default function OrdersPage() {
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="border-t border-border bg-muted/10 p-6 space-y-6">
+                  <div className="border-t border-border bg-muted/10 p-3.5 sm:p-6 space-y-4 sm:space-y-6">
                     <div className="space-y-4">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
                         Order Items
@@ -253,7 +253,7 @@ export default function OrdersPage() {
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-4">
+                              <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-4">
                                 <p className="text-sm font-medium text-text-primary">
                                   ₹{(Number(item.unitPrice) * item.quantity).toLocaleString("en-IN")}
                                 </p>
@@ -360,8 +360,8 @@ export default function OrdersPage() {
 
       {/* Review Modal inside Order History */}
       {reviewTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border p-6 shadow-xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
                 <h3 className="font-serif text-xl text-text-primary">

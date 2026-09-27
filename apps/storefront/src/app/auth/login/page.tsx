@@ -63,13 +63,13 @@ export default function LoginPage() {
 
   return (
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "dummy"}>
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 bg-background">
       <GoogleAuthOverlay
         open={isAuthOverlayOpen}
         onClose={() => setIsGoogleAuthenticating(false)}
       />
 
-      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
+      <div className="w-full max-w-[440px] space-y-6 sm:space-y-8 bg-surface p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border relative">
         <div className="flex flex-col items-center">
           <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
             Welcome back

@@ -12,6 +12,18 @@ export class CategoryRepository {
       },
       include: {
         parent: true,
+        _count: {
+          select: {
+            products: {
+              where: {
+                product: {
+                  status: "ACTIVE",
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: {
         sortOrder: "asc",

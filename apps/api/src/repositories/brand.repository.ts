@@ -9,6 +9,18 @@ export class BrandRepository {
         deletedAt: null,
         ...(includeInactive ? {} : { isActive: true }),
       },
+      include: {
+        _count: {
+          select: {
+            products: {
+              where: {
+                status: "ACTIVE",
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
       orderBy: {
         name: "asc",
       },

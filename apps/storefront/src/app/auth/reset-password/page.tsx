@@ -125,8 +125,8 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="w-full max-w-[440px] space-y-8 bg-surface p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 bg-background">
+      <div className="w-full max-w-[440px] space-y-6 sm:space-y-8 bg-surface p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border">
         <div className="flex flex-col items-center text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-text-primary">Set new password</h2>
           <p className="mt-2 text-sm text-text-secondary">Enter your new password below.</p>

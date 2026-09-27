@@ -35,11 +35,11 @@ const icons: Record<ToastType, string> = {
 };
 
 const colors: Record<ToastType, string> = {
-  success: "border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-l-4 border-l-emerald-500 shadow-md",
-  error: "border-rose-500/40 bg-rose-50/90 dark:bg-rose-950/90 text-rose-800 dark:text-rose-200 border-l-4 border-l-rose-500 shadow-md",
-  warning: "border-amber-500/40 bg-amber-50/90 dark:bg-amber-950/90 text-amber-800 dark:text-amber-200 border-l-4 border-l-amber-500 shadow-md",
-  info: "border-accent/40 bg-accent/10 dark:bg-accent/20 text-accent border-l-4 border-l-accent shadow-md",
-  loading: "border-sky-500/40 bg-sky-50/90 dark:bg-sky-950/90 text-sky-800 dark:text-sky-200 border-l-4 border-l-sky-500 shadow-md",
+  success: "border-emerald-500/40 bg-emerald-50/90 dark:bg-surface dark:border-border text-emerald-800 dark:text-emerald-300 border-l-4 !border-l-emerald-500 shadow-md",
+  error: "border-rose-500/40 bg-rose-50/90 dark:bg-surface dark:border-border text-rose-800 dark:text-rose-300 border-l-4 !border-l-rose-500 shadow-md",
+  warning: "border-amber-500/40 bg-amber-50/90 dark:bg-surface dark:border-border text-amber-800 dark:text-amber-300 border-l-4 !border-l-amber-500 shadow-md",
+  info: "border-accent/40 bg-accent/10 dark:bg-surface dark:border-border text-accent border-l-4 !border-l-accent shadow-md",
+  loading: "border-sky-500/40 bg-sky-50/90 dark:bg-surface dark:border-border text-sky-800 dark:text-sky-300 border-l-4 !border-l-sky-500 shadow-md",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

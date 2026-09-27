@@ -65,18 +65,18 @@ function ProductsContent() {
   const totalProducts = data?.pages?.[0]?.total || 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:py-16 sm:px-6 lg:px-8">
       {/* Minimal Header & Categories */}
-      <div className="mb-16 text-center">
-        <h1 className="text-4xl font-serif text-text-primary mb-8">
+      <div className="mb-8 sm:mb-16 text-center">
+        <h1 className="text-2xl sm:text-4xl font-serif text-text-primary mb-4 sm:mb-8">
           {searchParam ? `Search Results for "${searchParam}"` : "The Collection"}
         </h1>
         
         {!searchParam && (
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex overflow-x-auto no-scrollbar sm:flex-wrap justify-start sm:justify-center gap-3 sm:gap-6 pb-2 sm:pb-0 px-2 sm:px-0">
             <button
               onClick={() => handleCategoryChange("all")}
-              className={`text-sm tracking-widest uppercase transition-colors ${!categoryParam ? "text-accent border-b border-accent pb-1 font-semibold" : "text-text-secondary hover:text-text-primary"}`}
+              className={`text-xs sm:text-sm tracking-widest uppercase transition-colors shrink-0 whitespace-nowrap ${!categoryParam ? "text-accent border-b border-accent pb-1 font-semibold" : "text-text-secondary hover:text-text-primary"}`}
             >
               All
             </button>
@@ -84,7 +84,7 @@ function ProductsContent() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.slug)}
-                className={`text-sm tracking-widest uppercase transition-colors ${categoryParam === cat.slug ? "text-accent border-b border-accent pb-1 font-semibold" : "text-text-secondary hover:text-text-primary"}`}
+                className={`text-xs sm:text-sm tracking-widest uppercase transition-colors shrink-0 whitespace-nowrap ${categoryParam === cat.slug ? "text-accent border-b border-accent pb-1 font-semibold" : "text-text-secondary hover:text-text-primary"}`}
               >
                 {cat.name}
               </button>
@@ -107,11 +107,11 @@ function ProductsContent() {
         </div>
       ) : isLoading ? (
         /* Loading Skeleton UI State */
-        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-16 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="space-y-4">
+            <div key={i} className="space-y-3 sm:space-y-4">
               <div className="aspect-[4/5] animate-pulse rounded-2xl bg-muted" />
-              <div className="h-4 w-3/4 mx-auto animate-pulse rounded bg-muted" />
+              <div className="h-3.5 sm:h-4 w-3/4 mx-auto animate-pulse rounded bg-muted" />
               <div className="h-3 w-1/4 mx-auto animate-pulse rounded bg-muted" />
             </div>
           ))}
@@ -132,7 +132,7 @@ function ProductsContent() {
         </div>
       ) : (
         /* Success Product Grid State */
-        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-16 lg:grid-cols-3">
           {allProducts.map((prod, index) => (
             <motion.div
               key={prod.id}
@@ -149,19 +149,19 @@ function ProductsContent() {
                       alt={prod.name}
                       fill
                       priority={index < 3}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
                       className="h-full w-full object-contain p-2 transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-muted text-text-secondary font-serif">
+                    <div className="flex h-full w-full items-center justify-center bg-muted text-text-secondary font-serif text-xs sm:text-base">
                       {prod.name}
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
-                <div className="mt-6 text-center">
-                  <h3 className="text-lg font-serif text-text-primary line-clamp-1">{prod.name}</h3>
-                  <p className="mt-2 text-sm text-text-secondary font-light">₹{prod.basePrice}</p>
+                <div className="mt-2.5 sm:mt-6 text-center">
+                  <h3 className="text-sm sm:text-lg font-serif text-text-primary line-clamp-1">{prod.name}</h3>
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-text-secondary font-light">₹{prod.basePrice}</p>
                 </div>
               </Link>
             </motion.div>

@@ -310,10 +310,10 @@ export default function ProductDetailsPage() {
 
   return (
     <div className="bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:py-16 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-12 lg:gap-16">
           {/* Image Gallery */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             <div
               onClick={() => images[selectedImage] && setIsLightboxOpen(true)}
               className="aspect-[4/5] max-h-[640px] w-full overflow-hidden rounded-2xl bg-surface/60 border border-border/60 relative group cursor-zoom-in flex items-center justify-center p-2 sm:p-4 shadow-xs hover:border-accent/40 transition-all"
@@ -347,12 +347,12 @@ export default function ProductDetailsPage() {
               )}
             </div>
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {images.map((img: string, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className={`shrink-0 w-20 sm:w-24 aspect-[4/5] overflow-hidden rounded-xl transition-all relative bg-surface/50 border border-border ${selectedImage === i ? 'ring-2 ring-accent ring-offset-2 border-transparent' : 'opacity-70 hover:opacity-100'}`}
+                    className={`shrink-0 w-16 sm:w-24 aspect-[4/5] overflow-hidden rounded-xl transition-all relative bg-surface/50 border border-border ${selectedImage === i ? 'ring-2 ring-accent ring-offset-2 border-transparent' : 'opacity-70 hover:opacity-100'}`}
                   >
                     <Image src={img} alt={`Thumbnail ${i}`} fill sizes="96px" className="h-full w-full object-contain p-1" />
                   </button>
@@ -362,18 +362,18 @@ export default function ProductDetailsPage() {
           </div>
 
           {/* Product Info */}
-          <div className="flex flex-col pt-4 lg:pt-10 relative">
-            <div className="flex justify-between items-start mb-2">
-              <h1 className="text-4xl lg:text-5xl font-serif text-text-primary leading-tight">
+          <div className="flex flex-col pt-1 sm:pt-4 lg:pt-10 relative">
+            <div className="flex justify-between items-start mb-2 gap-3">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif text-text-primary leading-tight">
                 {product.name}
               </h1>
               <button
                 onClick={handleAddToWishlist}
                 disabled={addToWishlist.isPending}
-                className="text-text-secondary hover:text-accent transition-colors p-2"
+                className="text-text-secondary hover:text-accent transition-colors p-1.5 sm:p-2 shrink-0"
                 aria-label="Add to Wishlist"
               >
-                <Heart className={`w-8 h-8 ${addToWishlist.isPending ? 'opacity-50' : ''}`} />
+                <Heart className={`w-6 h-6 sm:w-8 sm:h-8 ${addToWishlist.isPending ? 'opacity-50' : ''}`} />
               </button>
             </div>
 
@@ -396,24 +396,24 @@ export default function ProductDetailsPage() {
             </div>
 
 
-            <div className="text-2xl font-light text-text-primary mb-8">
+            <div className="text-xl sm:text-2xl font-light text-text-primary mb-4 sm:mb-8">
               ₹{selectedVariant?.price ?? product.basePrice}
             </div>
 
-            <div className="text-text-secondary font-light leading-relaxed mb-10 text-lg">
+            <div className="text-text-secondary font-light leading-relaxed mb-6 sm:mb-10 text-sm sm:text-lg">
               <p>{product.description || "A beautiful handcrafted creation made with love."}</p>
             </div>
 
             {/* Variant Selector */}
             {variants.length > 1 && (
-              <div className="mb-10">
-                <span className="text-sm tracking-widest uppercase text-text-secondary block mb-3">Variant</span>
-                <div className="flex flex-wrap gap-3">
+              <div className="mb-6 sm:mb-10">
+                <span className="text-xs sm:text-sm tracking-widest uppercase text-text-secondary block mb-2 sm:mb-3">Variant</span>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {variants.map((variant: any, i: number) => (
                     <button
                       key={variant.id}
                       onClick={() => setSelectedVariantIndex(i)}
-                      className={`px-5 py-2.5 rounded-md border text-sm font-medium transition-all ${selectedVariantIndex === i
+                      className={`px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-md border text-xs sm:text-sm font-medium transition-all ${selectedVariantIndex === i
                         ? "border-accent bg-accent/10 text-accent ring-1 ring-accent"
                         : "border-border text-text-secondary hover:border-accent/50 hover:text-text-primary"
                         }`}
@@ -426,12 +426,12 @@ export default function ProductDetailsPage() {
             )}
 
             {/* Customization Instructions (Optional) */}
-            <div className="mb-8 space-y-2">
+            <div className="mb-6 sm:mb-8 space-y-2">
               <div className="flex justify-between items-center">
-                <label htmlFor="customization-instructions" className="text-sm font-medium text-text-primary flex items-center gap-1.5">
-                  Customization Instructions <span className="text-xs font-normal text-text-secondary">(Optional)</span>
+                <label htmlFor="customization-instructions" className="text-xs sm:text-sm font-medium text-text-primary flex items-center gap-1.5">
+                  Customization Instructions <span className="text-[11px] sm:text-xs font-normal text-text-secondary">(Optional)</span>
                 </label>
-                <span className={`text-xs ${customization.length > 500 ? "text-rose-500 font-semibold" : "text-text-secondary font-light"}`}>
+                <span className={`text-[11px] sm:text-xs ${customization.length > 500 ? "text-rose-500 font-semibold" : "text-text-secondary font-light"}`}>
                   {customization.length}/500
                 </span>
               </div>
@@ -446,22 +446,22 @@ export default function ProductDetailsPage() {
               />
             </div>
 
-            <div className="flex items-center gap-6 mb-10">
-              <span className="text-sm tracking-widest uppercase text-text-secondary">Quantity</span>
+            <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-10">
+              <span className="text-xs sm:text-sm tracking-widest uppercase text-text-secondary">Quantity</span>
               <div className="inline-flex items-center rounded-md border border-border bg-surface overflow-hidden">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 py-3 hover:bg-muted transition-colors text-text-secondary"
+                  className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-muted transition-colors text-text-secondary"
                 >-</button>
-                <span className="w-8 text-center font-medium">{quantity}</span>
+                <span className="w-8 text-center font-medium text-sm sm:text-base">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="px-4 py-3 hover:bg-muted transition-colors text-text-secondary"
+                  className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-muted transition-colors text-text-secondary"
                 >+</button>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-16">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-16">
               <Button
                 variant="outline"
                 size="lg"
@@ -486,11 +486,11 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Handcrafted Note */}
-            <div className="rounded-2xl bg-surface border border-border p-8">
-              <h3 className="font-serif text-xl mb-3 flex items-center gap-2">
+            <div className="rounded-2xl bg-surface border border-border p-5 sm:p-8">
+              <h3 className="font-serif text-lg sm:text-xl mb-2 sm:mb-3 flex items-center gap-2">
                 Handmade with Love <span className="text-accent">✨</span>
               </h3>
-              <p className="text-text-secondary font-light leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary font-light leading-relaxed">
                 Every piece at Curio Wrap is individually crafted by hand. Minor variations may occur, making your item truly one-of-a-kind.
               </p>
             </div>
@@ -499,12 +499,12 @@ export default function ProductDetailsPage() {
       </div>
 
       {/* Reviews Section */}
-      <div id="reviews-section" className="border-t border-border bg-background py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border">
+      <div id="reviews-section" className="border-t border-border bg-background py-8 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-border">
             <div>
-              <h2 className="text-3xl font-serif text-text-primary">Customer Reviews</h2>
-              <p className="text-sm text-text-secondary font-light mt-1">
+              <h2 className="text-2xl sm:text-3xl font-serif text-text-primary">Customer Reviews</h2>
+              <p className="text-xs sm:text-sm text-text-secondary font-light mt-1">
                 Real feedback from verified buyers who own this creation.
               </p>
             </div>
@@ -514,18 +514,18 @@ export default function ProductDetailsPage() {
               eligibilityData?.canReview ? (
                 <Button
                   onClick={() => setIsReviewModalOpen(true)}
-                  className="rounded-full px-6 shadow-sm"
+                  className="rounded-full px-6 shadow-sm self-start md:self-auto"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   {eligibilityData?.existingReview ? "Edit Your Review" : "Write a Review"}
                 </Button>
               ) : (
-                <div className="text-xs text-text-secondary bg-surface border border-border px-4 py-3 rounded-xl font-light">
+                <div className="text-xs text-text-secondary bg-surface border border-border px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl font-light">
                   🔒 Only verified buyers of delivered orders can write a review.
                 </div>
               )
             ) : (
-              <Link href="/auth/login">
+              <Link href="/auth/login" className="self-start md:self-auto">
                 <Button variant="outline" className="rounded-full px-6">
                   Sign in to Review
                 </Button>
@@ -534,7 +534,7 @@ export default function ProductDetailsPage() {
           </div>
 
           {/* Rating Summary Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-surface border border-border rounded-2xl p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 bg-surface border border-border rounded-2xl p-4 sm:p-8">
             <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-8 text-center">
               <span className="text-5xl font-serif text-text-primary font-bold">{stats.averageRating}</span>
               <div className="flex items-center gap-1 text-amber-500 my-2">
@@ -693,8 +693,8 @@ export default function ProductDetailsPage() {
 
       {/* Review Modal */}
       {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border p-6 shadow-xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <h3 className="font-serif text-xl text-text-primary">
                 {eligibilityData?.existingReview ? "Edit Your Review" : "Write a Product Review"}

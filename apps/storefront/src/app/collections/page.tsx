@@ -12,16 +12,16 @@ export default function CollectionsPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <p className="text-sm font-medium tracking-[0.2em] text-accent uppercase mb-4">Curated</p>
-          <h1 className="text-4xl font-serif text-text-primary">Our Collections</h1>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-24 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-20">
+          <p className="text-xs sm:text-sm font-medium tracking-[0.2em] text-accent uppercase mb-2 sm:mb-4">Curated</p>
+          <h1 className="text-2xl sm:text-4xl font-serif text-text-primary">Our Collections</h1>
         </div>
         
         {isError ? (
-          <div className="mx-auto max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-6 sm:p-8 text-center">
             <p className="text-base font-medium text-text-primary mb-2">Unable to load collections</p>
-            <p className="text-sm text-text-secondary mb-6 font-light">Something went wrong while connecting to the store. Please try again.</p>
+            <p className="text-xs sm:text-sm text-text-secondary mb-6 font-light">Something went wrong while connecting to the store. Please try again.</p>
             <button
               onClick={() => refetch()}
               className="px-6 py-2.5 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all cursor-pointer"
@@ -30,38 +30,38 @@ export default function CollectionsPage() {
             </button>
           </div>
         ) : isLoading ? (
-          <div className="space-y-24">
-            {[1,2].map(i => <div key={i} className="h-96 w-full bg-muted animate-pulse rounded-2xl" />)}
+          <div className="space-y-10 sm:space-y-24">
+            {[1,2].map(i => <div key={i} className="h-64 sm:h-96 w-full bg-muted animate-pulse rounded-2xl" />)}
           </div>
-        ) : !data?.categories?.length ? (
+        ) : !(data?.collections?.length || data?.categories?.length) ? (
           <div className="text-center py-16 text-text-secondary font-light">
             <p className="text-lg font-medium">No collections available.</p>
             <p className="text-sm mt-1">Check back later for curated collections.</p>
           </div>
         ) : (
-          <div className="space-y-24">
-            {data.categories.map((c: any, i: number) => (
+          <div className="space-y-10 sm:space-y-24">
+            {(data?.collections || data?.categories || []).map((c: any, i: number) => (
               <motion.div 
                 key={c.id} 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-12 items-center`}
+                className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-6 sm:gap-12 items-center`}
               >
                 <div className="w-full md:w-1/2">
                   <div className="w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-sm relative group bg-muted flex items-center justify-center">
                     {c.imageUrl ? (
                       <img src={getImageUrl(c.imageUrl)} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                     ) : (
-                      <span className="font-serif text-2xl text-text-secondary">{c.name}</span>
+                      <span className="font-serif text-xl sm:text-2xl text-text-secondary">{c.name}</span>
                     )}
                     <div className="absolute inset-0 bg-black/5" />
                   </div>
                 </div>
-                <div className={`w-full md:w-1/2 p-8 ${i % 2 === 0 ? 'md:pl-16' : 'md:pr-16'}`}>
-                  <h2 className="text-4xl font-serif mb-6 text-text-primary">{c.name}</h2>
-                  <Link href={`/products?category=${c.slug}`}>
+                <div className={`w-full md:w-1/2 p-2 sm:p-8 text-center md:text-left ${i % 2 === 0 ? 'md:pl-16' : 'md:pr-16'}`}>
+                  <h2 className="text-2xl sm:text-4xl font-serif mb-3 sm:mb-6 text-text-primary">{c.name}</h2>
+                  <Link href={c.href || `/products?category=${c.slug}`}>
                     <Button size="lg" className="px-8 shadow-sm hover:shadow-md transition-shadow">
                       Explore {c.name}
                     </Button>

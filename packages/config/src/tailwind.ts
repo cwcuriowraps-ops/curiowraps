@@ -7,8 +7,10 @@ export const tailwindPreset = {
         background: "var(--color-background)",
         surface: "var(--color-surface)",
         card: "var(--color-card)",
+        elevated: "var(--color-elevated)",
         "text-primary": "var(--color-text-primary)",
         "text-secondary": "var(--color-text-secondary)",
+        "text-muted": "var(--color-text-muted)",
         accent: {
           DEFAULT: "var(--color-accent)",
           hover: "var(--color-accent-hover)",

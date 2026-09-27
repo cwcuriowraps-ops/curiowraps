@@ -503,7 +503,7 @@ export function ProductImageEditorModal({
             {/* Interactive Viewport Canvas */}
             <div
               ref={viewportRef}
-              className="w-full max-w-[340px] aspect-square relative rounded-2xl overflow-hidden bg-neutral-950 shadow-inner select-none cursor-grab active:cursor-grabbing border border-border flex items-center justify-center mx-auto"
+              className="w-full max-w-[340px] aspect-square relative rounded-2xl overflow-hidden bg-black shadow-inner select-none cursor-grab active:cursor-grabbing border border-border flex items-center justify-center mx-auto"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}

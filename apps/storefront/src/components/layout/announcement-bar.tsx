@@ -17,10 +17,10 @@ export function AnnouncementBar() {
   if (!isEnabled || !text) return null;
 
   return (
-    <div className="w-full bg-accent text-white text-xs py-2 px-4 text-center font-medium shadow-sm flex items-center justify-center gap-2">
-      <span>{text}</span>
+    <div className="w-full bg-accent text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 text-center font-medium shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 tracking-tight sm:tracking-normal">
+      <span className="truncate max-w-[240px] sm:max-w-none">{text}</span>
       {link && (
-        <Link href={link} className="underline font-semibold hover:opacity-80 transition-opacity">
+        <Link href={link} className="underline font-semibold hover:opacity-80 transition-opacity shrink-0">
           Shop Now →
         </Link>
       )}

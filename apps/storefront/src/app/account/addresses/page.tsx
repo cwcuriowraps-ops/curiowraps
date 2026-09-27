@@ -128,11 +128,11 @@ export default function AddressesPage() {
   const addresses = data?.addresses || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-text-primary">Addresses</h1>
-          <p className="text-sm text-text-secondary font-light mt-1">
+          <h1 className="text-2xl sm:text-3xl font-serif text-text-primary">Addresses</h1>
+          <p className="text-xs sm:text-sm text-text-secondary font-light mt-1">
             Manage your saved delivery locations for faster checkout.
           </p>
         </div>
@@ -155,11 +155,11 @@ export default function AddressesPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {addresses.map((addr: any) => (
             <div
               key={addr.id}
-              className="rounded-2xl border border-border bg-surface p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative"
+              className="rounded-2xl border border-border bg-surface p-4 sm:p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative"
             >
               <div className="space-y-3 font-light">
                 <div className="flex items-center gap-3">
@@ -202,7 +202,7 @@ export default function AddressesPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDelete(addr.id)}
-                  className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 gap-1"
+                  className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 gap-1"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Delete
                 </Button>
@@ -214,21 +214,21 @@ export default function AddressesPage() {
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-border rounded-3xl max-w-lg w-full shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-surface border border-border rounded-2xl sm:rounded-3xl max-w-lg w-full shadow-2xl p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute right-6 top-6 text-text-secondary hover:text-text-primary transition-colors"
+              className="absolute right-4 sm:right-6 top-4 sm:top-6 text-text-secondary hover:text-text-primary transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-2xl font-serif text-text-primary mb-6">
+            <h3 className="text-xl sm:text-2xl font-serif text-text-primary mb-4 sm:mb-6">
               {editingAddress ? "Edit Address" : "Add New Address"}
             </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Label (e.g. Home, Office)"
                   value={label}
@@ -245,7 +245,7 @@ export default function AddressesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Phone Number"
                   value={phone}
@@ -262,7 +262,7 @@ export default function AddressesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Address Line 2 (Optional)"
                   value={line2}
@@ -278,7 +278,7 @@ export default function AddressesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Input
                   label="State"
                   value={state}

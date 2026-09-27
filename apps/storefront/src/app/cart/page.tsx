@@ -72,8 +72,8 @@ export default function CartPage() {
 
   return (
     <div className="bg-background min-h-[70vh]">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <h1 className="text-4xl font-serif text-text-primary mb-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-16 sm:px-6 lg:px-8 lg:py-24">
+        <h1 className="text-2xl sm:text-4xl font-serif text-text-primary mb-6 sm:mb-12">
           Your Cart
         </h1>
 
@@ -85,26 +85,26 @@ export default function CartPage() {
 
             <ul role="list" className="divide-y divide-border border-t border-border">
               {items.map((item: any) => (
-                <li key={item.id} className="flex py-8">
+                <li key={item.id} className="flex py-4 sm:py-8 gap-3 sm:gap-6">
                   <div className="flex-shrink-0">
                     {item.variant?.product?.images?.[0]?.url ? (
                       <img
                         src={getImageUrl(item.variant.product.images[0].url)}
                         alt={item.variant?.product?.name || "Product"}
-                        className="h-32 w-32 rounded-xl object-cover object-center bg-muted"
+                        className="h-20 w-20 sm:h-32 sm:w-32 rounded-xl object-cover object-center bg-muted"
                       />
                     ) : (
-                      <div className="h-32 w-32 rounded-xl bg-muted flex items-center justify-center text-text-secondary font-serif text-xs text-center p-2">
+                      <div className="h-20 w-20 sm:h-32 sm:w-32 rounded-xl bg-muted flex items-center justify-center text-text-secondary font-serif text-[10px] sm:text-xs text-center p-1 sm:p-2">
                         {item.variant?.product?.name}
                       </div>
                     )}
                   </div>
 
-                  <div className="ml-6 flex flex-1 flex-col justify-between">
-                    <div className="relative pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+                  <div className="flex flex-1 flex-col justify-between min-w-0">
+                    <div className="relative pr-7 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
                       <div>
                         <div className="flex justify-between">
-                          <h3 className="text-lg font-serif">
+                          <h3 className="text-sm sm:text-lg font-serif">
                             <Link
                               href={`/products/${item.variant?.product?.slug}`}
                               className="text-text-primary hover:text-accent transition-colors"
@@ -113,19 +113,19 @@ export default function CartPage() {
                             </Link>
                           </h3>
                         </div>
-                        <div className="mt-1 flex text-sm">
+                        <div className="mt-0.5 sm:mt-1 flex text-xs sm:text-sm">
                           <p className="text-text-secondary font-light">{item.variant?.name}</p>
                         </div>
                         {item.customization && (
-                          <div className="mt-2 rounded-lg bg-muted/60 p-2.5 text-xs text-text-secondary border border-border">
+                          <div className="mt-2 rounded-lg bg-muted/60 p-2 sm:p-2.5 text-xs text-text-secondary border border-border">
                             <span className="font-semibold block mb-0.5 text-text-primary text-[10px] uppercase tracking-wider">Customization Instructions</span>
                             <p className="whitespace-pre-wrap font-light">{item.customization}</p>
                           </div>
                         )}
-                        <p className="mt-4 text-base font-medium text-text-primary">
+                        <p className="mt-2 sm:mt-4 text-sm sm:text-base font-medium text-text-primary">
                           ₹{parseFloat(item.variant?.price?.toString() || "0")}
                         </p>
-                        <p className="text-xs text-text-secondary font-light mt-1">
+                        <p className="text-[11px] sm:text-xs text-text-secondary font-light mt-0.5 sm:mt-1">
                           Subtotal: ₹{(parseFloat(item.variant?.price?.toString() || "0") * item.quantity).toFixed(2)}
                         </p>
                       </div>
@@ -179,9 +179,9 @@ export default function CartPage() {
           {/* Order summary */}
           <section
             aria-labelledby="summary-heading"
-            className="mt-16 rounded-2xl bg-surface p-6 sm:p-8 lg:col-span-5 lg:mt-0 border border-border"
+            className="mt-8 sm:mt-16 rounded-2xl bg-surface p-4 sm:p-8 lg:col-span-5 lg:mt-0 border border-border"
           >
-            <h2 id="summary-heading" className="text-2xl font-serif text-text-primary mb-6">
+            <h2 id="summary-heading" className="text-xl sm:text-2xl font-serif text-text-primary mb-4 sm:mb-6">
               Order Summary
             </h2>
 

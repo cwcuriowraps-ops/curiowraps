@@ -31,6 +31,7 @@ const runtimeEnvSchema = z.object({
   BREVO_SMTP_USER: z.string().optional(),
   BREVO_SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default("onboarding@curiowrap.com"),
+  GOOGLE_CLIENT_ID: z.string().optional(),
 });
 
 export interface ApiConfig {
@@ -109,6 +110,10 @@ export function createApiConfig(env: typeof process.env = process.env): ApiConfi
     }
     if (parsed.ADMIN_URL.includes("localhost") || parsed.ADMIN_URL.includes("127.0.0.1")) {
       missing.push("ADMIN_URL must be configured with a production domain (not localhost) in production");
+    }
+    const googleClientId = parsed.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    if (!googleClientId || googleClientId.length < 20) {
+      missing.push("GOOGLE_CLIENT_ID must be set to a valid Google OAuth client ID in production");
     }
 
 

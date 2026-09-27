@@ -220,7 +220,7 @@ export default function CategoriesPage() {
                   </td>
                   <td className="px-6 py-4">{cat.slug}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${cat.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${cat.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-[#111111] dark:text-[#A1A1A1] dark:border dark:border-[#222222]'}`}>
                       {cat.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>

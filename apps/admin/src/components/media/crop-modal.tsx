@@ -239,7 +239,7 @@ export function CropModal({
           <div
             ref={cropperContainerRef}
             style={{ width: VIEWPORT_SIZE, height: VIEWPORT_SIZE }}
-            className="relative rounded-2xl overflow-hidden bg-neutral-900 shadow-inner select-none cursor-grab active:cursor-grabbing border border-border flex items-center justify-center"
+            className="relative rounded-2xl overflow-hidden bg-black shadow-inner select-none cursor-grab active:cursor-grabbing border border-border flex items-center justify-center"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

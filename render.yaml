@@ -11,6 +11,8 @@ services:
         value: 4000
       - key: NODE_ENV
         value: production
+      - key: GOOGLE_CLIENT_ID
+        value: 281891269995-ji1p45ec0ge87njv6jnq49pp5k5csvq9.apps.googleusercontent.com
       - key: STOREFRONT_URL
         value: https://curiowraps-storefront.vercel.app
       - key: ADMIN_URL

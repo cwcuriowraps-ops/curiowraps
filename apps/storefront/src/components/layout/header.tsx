@@ -69,10 +69,29 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="Curio Wraps Home" className="flex items-center">
-          <Logo size={52} />
-        </Link>
+      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+        {/* Left: Mobile Hamburger + Brand Logo (Desktop: Brand Logo) */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            className="flex items-center justify-center text-text-secondary hover:text-accent transition-colors p-2 -ml-1 rounded-lg min-h-[44px] min-w-[44px] md:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              {mobileOpen ? (
+                <path d="M18 6L6 18M6 6l12 12" />
+              ) : (
+                <path d="M4 12h16M4 6h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+
+          <Link href="/" aria-label="Curio Wraps Home" className="flex items-center">
+            <Logo size={35} className="sm:hidden" />
+            <Logo size={52} className="hidden sm:block" />
+          </Link>
+        </div>
 
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-8 md:flex">
@@ -286,9 +305,19 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile Toggle */}
-        <div className="flex items-center gap-4 md:hidden">
-          <Link href="/cart" aria-label="Cart" className="text-text-secondary hover:text-accent transition-colors relative">
+        {/* Mobile Upper-Right: [Theme] [Cart] [Account] */}
+        <div className="flex items-center justify-end md:hidden gap-0.5 sm:gap-2">
+          {/* Theme Toggle */}
+          <div className="flex items-center justify-center min-h-[44px] min-w-[36px] sm:min-w-[40px] p-2">
+            <ThemeToggle />
+          </div>
+
+          {/* Cart */}
+          <Link
+            href="/cart"
+            aria-label="Cart"
+            className="flex items-center justify-center text-text-secondary hover:text-accent transition-colors relative min-h-[44px] min-w-[36px] sm:min-w-[40px] p-2"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="9" cy="21" r="1.5" />
               <circle cx="20" cy="21" r="1.5" />
@@ -297,32 +326,38 @@ export function Header() {
             {cartItemCount > 0 && (
               <span 
                 key={cartItemCount}
-                className="absolute -right-2 -top-2 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white ring-2 ring-background animate-badge-pop"
+                className="absolute right-0.5 top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white ring-2 ring-background animate-badge-pop"
               >
                 {cartItemCount}
               </span>
             )}
           </Link>
-          <button
-            type="button"
-            className="text-text-secondary hover:text-accent transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
+
+          {/* Account */}
+          <Link
+            href={profileHref}
+            aria-label="Account"
+            className="flex items-center justify-center text-text-secondary hover:text-accent transition-colors min-h-[44px] min-w-[36px] sm:min-w-[40px] p-2"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              {mobileOpen ? (
-                <path d="M18 6L6 18M6 6l12 12" />
-              ) : (
-                <path d="M4 12h16M4 6h16M4 18h16" />
-              )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
-          </button>
+          </Link>
         </div>
       </div>
 
+      {/* Mobile Nav Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 top-16 sm:top-20 z-30 bg-black/50 backdrop-blur-xs md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* Mobile Nav */}
       {mobileOpen && (
-        <nav className="absolute left-0 top-20 w-full border-b border-border bg-background px-4 py-6 md:hidden shadow-lg">
+        <nav className="absolute left-0 top-16 sm:top-20 w-full z-40 border-b border-border bg-background px-4 py-6 md:hidden shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto animate-fade-in-slide-down">
           <div className="flex flex-col gap-4">
             {/* Mobile Search */}
             <form onSubmit={(e) => { handleSearch(e); setMobileOpen(false); }} className="flex gap-2">
@@ -338,15 +373,15 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-lg font-medium text-text-primary hover:text-accent transition-colors"
+                className="text-base sm:text-lg font-medium text-text-primary hover:text-accent transition-colors py-1"
                 onClick={() => setMobileOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
-            <hr className="my-2 border-border" />
-            <Link href="/wishlist" className="text-lg font-medium text-text-primary hover:text-accent transition-colors" onClick={() => setMobileOpen(false)}>Wishlist</Link>
-            <Link href={profileHref} className="text-lg font-medium text-text-primary hover:text-accent transition-colors" onClick={() => setMobileOpen(false)}>
+            <hr className="my-1 border-border" />
+            <Link href="/wishlist" className="text-base sm:text-lg font-medium text-text-primary hover:text-accent transition-colors py-1" onClick={() => setMobileOpen(false)}>Wishlist</Link>
+            <Link href={profileHref} className="text-base sm:text-lg font-medium text-text-primary hover:text-accent transition-colors py-1" onClick={() => setMobileOpen(false)}>
               {user ? "My Account" : "Sign In"}
             </Link>
             <div className="pt-2"><ThemeToggle /></div>
